@@ -1,4 +1,5 @@
 .venv
 animation_demo.py
 .streamlit/secrets.toml
-data/
+test.py
+.DS_store
