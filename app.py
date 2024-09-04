@@ -35,14 +35,15 @@ def show_raw_data(df, genes):
         filtered_df
     )
 
-def convert_At_to_Xe_ID(genes):
+def convert_At_to_Xe_ID():
     pass
 
-def home_page():
+def instruction_page():
+    st.subheader("Instruction page")
     st.text("Fill in values on the left then click generate")
 
 def generate_plots():
-    st.write(f"selected options are: {st.session_state}")
+    input_genes = [item.strip() for item in st.session_state.input_genes.split(',')]
     st.subheader("Plot")
     st.text(', '.join(input_genes))
 
@@ -72,21 +73,18 @@ st.sidebar.radio(
 
 
 if st.session_state.gene_selection =="Xerophyta GeneID":
-    input_genes=st.sidebar.text_input("Enter Xerophyta GeneIDs separated by  a comma.",place_holder_genes)
-    input_genes = [item.strip() for item in input_genes.split(',')]
+    st.sidebar.text_input("Enter Xerophyta GeneIDs separated by  a comma.",place_holder_genes, key="input_genes")
 
 elif st.session_state.gene_selection =="Arabidopsis ortholog":
-    input_genes=st.sidebar.text_input("Enter Arabidopsis orthologues separated by  a comma.","ERF1, WRKY33, AT1G55020, AT5G42650")
-    convert_At_to_Xe_ID(input_genes)
-    input_genes = genes_to_plot
+    st.sidebar.text_input("Enter Arabidopsis orthologues separated by  a comma.","ERF1, WRKY33, AT1G55020, AT5G42650", key="input_genes")
+    convert_At_to_Xe_ID()
+    
 
 elif st.session_state.gene_selection =="Genes with GO term":
-    input_genes=st.sidebar.text_input("Enter GO term description or ID separated by  a comma.","jasmonic acid mediated signaling pathway")
-    input_genes = genes_to_plot
+    st.sidebar.text_input("Enter GO term description or ID separated by  a comma.","jasmonic acid mediated signaling pathway", key="input_genes")
 
 elif st.session_state.gene_selection == "Genes with protein domain":
-    input_genes=st.sidebar.text_input("Enter protein domains to search for, separated by  a comma.",)
-    input_genes = genes_to_plot
+    st.sidebar.text_input("Enter protein domains to search for, separated by  a comma.", key="input_genes")
 
 
 st.sidebar.radio(
@@ -102,7 +100,7 @@ if(st.sidebar.button(label="Generate")):
     generate_plots()
 
 else:
-    home_page()
+    instruction_page()
 ###############################
 # End Side Bar
 ###############################

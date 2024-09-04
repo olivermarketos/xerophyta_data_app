@@ -3,3 +3,5 @@ animation_demo.py
 .streamlit/secrets.toml
 test.py
 .DS_store
+data/
+*.sqlite
