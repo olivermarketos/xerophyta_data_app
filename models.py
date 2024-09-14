@@ -66,4 +66,4 @@ class Gene_info(Base):
 
     # arabidopsis_homolog = Column(String, nullable=True)
     # Sequence_length
-    # delete this line after
+    # delete this line after    
