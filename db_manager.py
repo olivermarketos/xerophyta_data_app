@@ -15,13 +15,12 @@ Accepted command-line arguments:
 import argparse
 
 import models
-import time
 import os
 import sqlalchemy as sq
-import db
+import db as db
 import pandas as pd
 import uuid
-from datetime import datetime
+from Bio import SeqIO
 
 DATABASE_NAME = "xerophyta_db.sqlite"
 
@@ -43,7 +42,6 @@ def create_new_db():
 
     print("DONE")
 
-
 def add_rna_seq():
     """
     Populates the database with dummy user data from an excel file
@@ -54,51 +52,42 @@ def add_rna_seq():
 
     database.batch_create_or_update(models.Gene_expressions, data.to_dict("records"), "id")
 
-
-
-def add_chats():
-    """
-    Populates the database with dummy chat data from an excel file
-    """
-
+def add_gene_names():
     database = db.DB()
-    chats = pd.read_excel("data/chat_data.xlsx")
-        
-    database.create_or_update(models.Chat, chats.to_dict("records"), "chat_id")
+    data = pd.read_csv("data/Xe_seedlings_normalised_counts_tidy.csv")
+    gene_names = pd.unique((data["gene_name"]))
 
+    records = [{"gene_name": gene_name} for gene_name in gene_names]
+    database.batch_create_or_update(models.Gene_info, records, "gene_name")
 
-def add_messages():
-    """
-    Allows entering of messages from the command line. Simulates incoming data from the server
-    """
+def add_gene_nuc_seq():
     database = db.DB()
 
-    while True:
-        chat_id = input("Chat Id: ")
-        from_id = input("Your ID: ")
-        
-        timestamp = datetime.now()
-        print("Timestamp: {}".format(timestamp))
+    records =[{"gene_name": seq_record.id, "nt_sequence": str(seq_record.seq)} for seq_record in SeqIO.parse("data/Xelegans_CDS_annot150424.fasta", "fasta")]
 
-        content = input("Message: ")
+    database.batch_create_or_update(models.Gene_info, records, "gene_name")
 
-        input("Press enter to send")
+def add_annotation_data():
+    database = db.DB()
+    data = pd.read_csv("data/Xelegans_ALL_Arabidopsis_annotation_topblast.csv")
+    print(data.head())
+    database.batch_create_or_update(models.Gene_info, data.to_dict("records"), "gene_name")
 
-        database.add_message(chat_id, content, timestamp, from_id)
-
-
-def get_messages():
+def get_expression():
     """
-    Fetches all messages from the database based on a chat id
+    Fetches all expression values from the database based on a gene name
     """
-    chat_id = input("Chat id: ")
+    gene_name = input("Gene name:")
 
     database = db.DB()
-
+    time = []
+    treatment_time = []
     print()
-
-    for msg in database.get_chat_messages(chat_id=chat_id):
-        print("Message to {} from {} at {}: \n {}".format(msg.chat_id, msg.from_id, msg.timestamp, msg.content))
+    for i, value in enumerate(database.get_expression_by_gene_name(gene_name)):
+        time.append(value.experiment_time)
+        treatment_time.append(value.treatment_time)
+    print(time)
+    print(treatment_time)
 
 
 def add_user():
@@ -143,6 +132,7 @@ def start_chat():
 
 def init_db():
     create_new_db()
+    add_gene_names()
     add_rna_seq()
 
 if __name__ == "__main__":
@@ -158,14 +148,9 @@ if __name__ == "__main__":
     elif args.command == "add_rna_seq":
        add_rna_seq()
 
-    elif args.command == "add_chats":
-        add_chats()
 
-    elif args.command == "add_messages":
-        add_messages()
-
-    elif args.command == "get_messages":
-        get_messages
+    elif args.command == "get_expression":
+        get_expression()
 
     elif args.command == "add_user":
         add_user()
@@ -183,8 +168,15 @@ if __name__ == "__main__":
         chat = d.get_or_create_chat(users)
 
         print(chat.chat_id)
-        
 
+    elif args.command == "add_genes":
+        add_gene_names()
+
+    elif args.command == "add_seq":
+        add_gene_nuc_seq()
+
+    elif args.command == "add_gene_info":
+        add_annotation_data()
     else:
         print("Unrecognized command")
 

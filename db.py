@@ -83,8 +83,6 @@ class DB():
         return instances[-1] if instances else None
 
 
-
-
     def get_expression_by_gene_name(self, gene_names):
     # Ensure gene_names is a list or tuple
         if isinstance(gene_names, str):
@@ -94,3 +92,14 @@ class DB():
         return expressions
 
 
+    def genes_no_info(self):
+        results = self.session.query(models.Gene_info.gene_name).filter(models.Gene_info.sequence_description == None).all()
+        return results
+
+    def genes_from_seqdata(self):
+        results = self.session.query(models.Gene_expressions.gene_name).distinct().all()
+        return results
+    
+    def get_gene_names(self):
+        results = self.session.query(models.Gene_info.gene_name).all()
+        return results

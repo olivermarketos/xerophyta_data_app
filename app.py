@@ -111,3 +111,6 @@ else:
 st.divider()
 
 st.caption("For any issues or inquiries, please contact us at [**which email address?**].")
+
+
+request_handler(gene_names, DE, plot_num, query_source)
