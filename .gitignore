@@ -4,6 +4,4 @@ animation_demo.py
 test.py
 .DS_store
 data/
-*.sqlite
 TODO.md
-*.sqlite
