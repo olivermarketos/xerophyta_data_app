@@ -6,3 +6,4 @@ test.py
 data/
 *.sqlite
 TODO.md
+*.sqlite
