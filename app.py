@@ -18,7 +18,6 @@ options_deg = ["show all genes", "Only display DEGS", "Only display up-regulted 
 
 genes_to_plot = ['Xele.ptg000001l.1', 'Xele.ptg000001l.116','Xele.ptg000001l.16']
 place_holder_genes= "Xele.ptg000001l.1, Xele.ptg000001l.116,Xele.ptg000001l.16"
-data = pd.read_csv("data/Xe_seedlings_normalised_counts_tidy.csv")
 
 
 ###############################
