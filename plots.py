@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 
-def expression_plot(df):
+def multi_panel_gene_expression(df):
    
     figures = []
     grouped = df.groupby(['gene_name', 'treatment'])
@@ -33,26 +33,37 @@ def expression_plot(df):
     return figures
 
 
+def single_panel_gene_expression(df):
+    figures = []
+    
+    # Group by treatment (this will group all genes by their treatments)
+    grouped = df.groupby('treatment')
 
-def expression_plot_old(df):
+    # Iterate over the groups by treatment
+    for treatment, group in grouped:
+        # Create a new figure for each treatment
+        fig, ax = plt.subplots(figsize=(10, 6))
 
-    bins = [0, 3, 6, 9,12,15,24,25,26,28,32,36,72]
+        # Now we need to group by gene_name within the treatment group
+        for gene, gene_group in group.groupby('gene_name'):
+            # Plot points for individual replicates
+            ax.scatter(gene_group['treatment_time'], gene_group['log2_expression'], label=f'{gene} Replicates', alpha=0.6)
 
-    mean_log2_expression =[]
-    binned_stdevs =[] 
+            # Calculate the mean log2_expression for each treatment_time
+            avg_gene_group = gene_group.groupby('treatment_time').agg({'log2_expression': 'mean'}).reset_index()
 
-    for gene in genes:
-        subset = filtered_df[filtered_df['gene_name'] == gene]
+            # Plot the average line for this gene
+            ax.plot(avg_gene_group['treatment_time'], avg_gene_group['log2_expression'], label=f"{gene} Avg", marker='o')
 
-        average_log2_expression = subset.groupby('experiment_time')['log2_expression'].mean()
-        mean_log2_expression = average_log2_expression.values
+        # Add labels and title
+        ax.set_xlabel('Treatment Time')
+        ax.set_ylabel('Log2 Expression')
+        ax.set_title(f"Expression of Genes under {treatment}hydration")
 
-        plt.plot(bins,mean_log2_expression , marker='o', label=gene )
+        # Add legend
+        ax.legend()
 
-    plt.title('Gene Expression Over Time for Selected Genes')
-    plt.xlabel('Time')
-    plt.ylabel('Log2 expression')
-    plt.legend(title='Gene Name')
-    plt.grid(True)
+        # Append the figure to the list
+        figures.append(fig)
 
-    return plt
+    return figures

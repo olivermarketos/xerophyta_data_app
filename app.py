@@ -16,6 +16,7 @@ options_dataset=["X. elegans time-series"]
 # options_gene_selection = ['Xerophyta GeneID', "Arabidopsis ortholog", "Genes with GO term", "Genes with protein domain"]
 options_gene_selection = ['Xerophyta GeneID']
 options_deg = ["show all genes"]
+options_plot_type = ["Genes on single plot", "Genes on separate plot"]
 # options_deg = ["show all genes", "Only display DEGS", "Only display up-regulted DEGs", "Only display down-regulated DEGs"]
 
 genes_to_plot = ['Xele.ptg000001l.1', 'Xele.ptg000001l.116','Xele.ptg000001l.16']
@@ -47,44 +48,56 @@ def instruction_page():
 def retreive_expression_data():
     database = db.DB()
     input_genes = [item.strip() for item in st.session_state.input_genes.split(',')]
-
+    
     data = database.get_gene_expression_data(input_genes)
     return data
 
 def generate_plots(data):
     st.subheader("Plot")
 
-    figures = plots.expression_plot(data)
+    if st.session_state.plot_type == "Genes on single plot":
+        figures = plots.single_panel_gene_expression(data)
+        col1, col2 = st.columns(2)  # Create two columns for side-by-side plots
 
-    # Group the figures by gene_name
-    grouped_figures = {}
+        # Show the first plot in the left column
+        with col1:
+            st.pyplot(figures[0])
 
-    # Assuming the figure title contains the gene name and treatment information
-    for fig in figures:
-        # Extract the gene name from the title
-        title = fig.axes[0].get_title()
-        gene_name = title.split('|')[0].strip()  # Assuming title format: "Gene: GeneA | Treatment: Control"
+        # Show the second plot in the right column
+        with col2:
+            st.pyplot(figures[1])
+   
+   
+    # plot on separate panels
+    else:
+        figures = plots.multi_panel_gene_expression(data)
+        # Group the figures by gene_name
+        grouped_figures = {}
 
-        if gene_name not in grouped_figures:
-            grouped_figures[gene_name] = []
+        for fig in figures:
+            # Extract the gene name from the title
+            title = fig.axes[0].get_title()
+            gene_name = title.split('|')[0].strip()  
+            if gene_name not in grouped_figures:
+                grouped_figures[gene_name] = []
 
-        grouped_figures[gene_name].append(fig)
+            grouped_figures[gene_name].append(fig)
 
-    # Display plots for each gene, side by side
-    for gene_name, gene_figures in grouped_figures.items():
-        if len(gene_figures) == 2:
-            col1, col2 = st.columns(2)  # Create two columns for side-by-side plots
+        # Display plots for each gene, side by side
+        for gene_name, gene_figures in grouped_figures.items():
+            if len(gene_figures) == 2:
+                col1, col2 = st.columns(2)  # Create two columns for side-by-side plots
 
-            # Show the first plot in the left column
-            with col1:
+                # Show the first plot in the left column
+                with col1:
+                    st.pyplot(gene_figures[0])
+
+                # Show the second plot in the right column
+                with col2:
+                    st.pyplot(gene_figures[1])
+            else:
+                # If there's only one figure for a gene, show it in full width
                 st.pyplot(gene_figures[0])
-
-            # Show the second plot in the right column
-            with col2:
-                st.pyplot(gene_figures[1])
-        else:
-            # If there's only one figure for a gene, show it in full width
-            st.pyplot(gene_figures[0])
 
 
 
@@ -137,12 +150,18 @@ st.sidebar.radio(
     options_deg,
     key="filter_degs")
 
-
+st.sidebar.radio(
+    "How would you like the expression plots to be displayed?",
+    options_plot_type,
+    key="plot_type")
 
 if(st.sidebar.button(label="Generate")):
-    st.session_state.generate_clicked = True 
-    data = retreive_expression_data()
-    generate_plots(data)
+    st.session_state.generate_clicked = True
+    if st.session_state.input_genes:
+        data = retreive_expression_data()
+        generate_plots(data)
+    else:
+        st.write("Please enter gene names")
 
 else:
     instruction_page()
