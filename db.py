@@ -108,6 +108,9 @@ class DB():
         df = pd.DataFrame(data)
         return df
 
+    def get_uniprot_id(self):
+        query = self.session.query(models.Gene_info.Hit_ACC).all()
+        return query
 
     def genes_no_info(self):
         results = self.session.query(models.Gene_info.gene_name).filter(models.Gene_info.sequence_description == None).all()

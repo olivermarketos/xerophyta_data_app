@@ -104,34 +104,40 @@ def single_panel_gene_expression(df):
     # Group by treatment (this will group all genes by their treatments)
     grouped = df.groupby('treatment')
 
+    fig_width, fig_height = 10, 6
+
     # Iterate over the groups by treatment
     for treatment, group in grouped:
         # Create a new figure for each treatment
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(fig_width, fig_height))
 
-        # Now we need to group by gene_name within the treatment group
+        unique_gene_labels = [] 
         for gene, gene_group in group.groupby('gene_name'):
             # Plot points for individual replicates
-            ax.scatter(gene_group['treatment_time'], gene_group['log2_expression'], label=f'{gene} Replicates', alpha=0.6)
+            ax.scatter(gene_group['treatment_time'], gene_group['log2_expression'], label=f'{gene}', alpha=0.6)
 
             # Calculate the mean log2_expression for each treatment_time
             avg_gene_group = gene_group.groupby('treatment_time').agg({'log2_expression': 'mean'}).reset_index()
 
             # Plot the average line for this gene
-            ax.plot(avg_gene_group['treatment_time'], avg_gene_group['log2_expression'], label=f"{gene} Avg", marker='o')
-       
+            ax.plot(avg_gene_group['treatment_time'], avg_gene_group['log2_expression'], marker='o')
+
+            if gene not in unique_gene_labels:
+                unique_gene_labels.append(gene)
        
         ax.set_xticks(group['treatment_time'])
 
         # Add labels and title
-        ax.set_xlabel('Treatment Time')
+        ax.set_xlabel('Treatment Time',)
         ax.set_ylabel('Log2 Expression')
         ax.set_title(f"Expression of Genes under {treatment}hydration")
 
-        # Add legend
         ax.legend()
+        if treatment == "Re":
+            # Add legend
+            ax.get_yaxis().set_visible(False)
 
-        # Append the figure to the list
+        # Append the figure to the list 
         figures.append(fig)
 
     return figures

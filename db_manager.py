@@ -13,7 +13,7 @@ Accepted command-line arguments:
 """
 
 import argparse
-
+import re
 import models
 import os
 import sqlalchemy as sq
@@ -89,45 +89,27 @@ def get_expression():
     print(time)
     print(treatment_time)
 
-
-def add_user():
-    """
-    Either inserts or updates a user in the database
-    """
+def add_uniprot_id_mapping():
     database = db.DB()
+    df = pd.read_csv("data/uniprot_to_At_gene_all.csv")
+    df['At_locus_id'] = df['Gene Names'].apply(extract_arabidopsis_locus)
+    df['uniprot_id'] = df["Hit_ACC"]
 
-    id = input("ID: ")
-    first_name = input("Name: ")
-    last_name = input("Last Name: ")
-    ip_address = input("IP: ")
-
-    print(database.create_or_update(models.User, [{
-        "user_id": id,
-        "first_name": first_name, 
-        "last_name": last_name,
-        "ip_address": ip_address
-    }], "user_id"))
+    df['Gene Names'] = df["Gene Names"].apply(remove_arabidopsis_locus)
+    print(df)
 
 
-def start_chat():
-    """
-    Creates a new chat in the database
-    """
-    users = input("Enter list of users separated by a space: ").split(" ")
-    
-    print(users)
-    
-    d = db.DB()
+def remove_arabidopsis_locus(gene_name):
+    return re.sub(r'At[1-5]g\d{5}', '', gene_name).strip()  # Remove the locus and strip any extra spaces
 
-    new_chat = d.create_or_update(models.Chat, [{"chat_id": str(uuid.uuid4())}], "chat_id")
-    
-    users = d.get_users(users)
-   
 
-    for user in users:
-        new_chat.users.append(user)
+def extract_arabidopsis_locus(gene_name):
+    match = re.search(r'At[1-5]g\d{5}', gene_name)
+    if match:
+        return match.group(0)  # Return the matched locus
+    else:
+        return None  # Return None if no locus is found
 
-    d.session.commit()
         
 
 def init_db():
@@ -152,12 +134,7 @@ if __name__ == "__main__":
     elif args.command == "get_expression":
         get_expression()
 
-    elif args.command == "add_user":
-        add_user()
-    
-    elif args.command == "start_chat":
-        start_chat()
-
+  
     elif args.command == "init":
         init_db()
 
@@ -177,6 +154,9 @@ if __name__ == "__main__":
 
     elif args.command == "add_gene_info":
         add_annotation_data()
+    
+    elif args.command == "add_uniprot":
+        add_uniprot_id_mapping()
     else:
         print("Unrecognized command")
 

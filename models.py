@@ -53,6 +53,8 @@ class Gene_info(Base):
     
     differentially_expressed = Column(Boolean, nullable=True)
 
+    uniprot_id = Column(String)
+    At_locus_id = Column(String)
     # protein = Column(String, nullable=True)
     # blast_taxonomy = Column(String, nullable=True)
     # annotation_GO_ID = Column(String, nullable=True)

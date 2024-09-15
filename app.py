@@ -44,7 +44,7 @@ def instruction_page():
     st.subheader("Instruction page")
     st.text("Fill in values on the left then click generate")
 
-
+@st.cache_data
 def retreive_expression_data():
     database = db.DB()
     input_genes = [item.strip() for item in st.session_state.input_genes.split(',')]
