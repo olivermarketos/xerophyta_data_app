@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import data_connector
 import plots
-
+import db
 st.title('Xerophyta Data Explorer')
 st.divider()
 
@@ -42,10 +42,17 @@ def instruction_page():
     st.subheader("Instruction page")
     st.text("Fill in values on the left then click generate")
 
-def generate_plots():
+
+def retreive_expression_data():
+    database = db.DB()
     input_genes = [item.strip() for item in st.session_state.input_genes.split(',')]
+
+    data = database.get_gene_expression_data(input_genes)
+    st.write(data)
+
+
+def generate_plots():
     st.subheader("Plot")
-    st.text(', '.join(input_genes))
 
     plt = plots.expression_plot(pd.DataFrame(data), input_genes)
 
@@ -97,10 +104,13 @@ st.write(st.session_state)
 
 if(st.sidebar.button(label="Generate")):
     st.session_state.generate_clicked = True 
-    generate_plots()
+    retreive_expression_data()
+    # generate_plots()
 
 else:
     instruction_page()
+
+
 ###############################
 # End Side Bar
 ###############################
@@ -113,4 +123,4 @@ st.divider()
 st.caption("For any issues or inquiries, please contact us at [**which email address?**].")
 
 
-request_handler(gene_names, DE, plot_num, query_source)
+# request_handler(gene_names, DE, plot_num, query_source)

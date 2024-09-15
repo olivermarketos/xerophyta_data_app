@@ -1,7 +1,7 @@
 import sqlalchemy as sq
 from sqlalchemy.orm import sessionmaker
 import models
-
+import pandas as pd
 
 class DB():
 
@@ -83,13 +83,30 @@ class DB():
         return instances[-1] if instances else None
 
 
-    def get_expression_by_gene_name(self, gene_names):
-    # Ensure gene_names is a list or tuple
-        if isinstance(gene_names, str):
-            gene_names = [gene_names]
+    def get_gene_expression_data(self, gene_list):
+        """
+        Query the database to retrieve gene expression data for a list of genes.
+
+        Parameters:
+            gene_list (list): A list of gene names to query.
+
+        Returns:
+            pandas.DataFrame: A DataFrame containing the gene expression data.
+        """
+        # Ensure gene_names is a list or tuple
+        if isinstance(gene_list, str):
+            gene_list = [gene_list]
         
-        expressions = self.session.query(models.Gene_expressions).filter(models.Gene_expressions.gene_name.in_(gene_names)).all()
-        return expressions
+        query = self.session.query(models.Gene_expressions).filter(models.Gene_expressions.gene_name.in_(gene_list)).all()
+        
+        data = [record.__dict__ for record in query]
+
+        # Remove SQLAlchemy internal keys (_sa_instance_state)
+        for row in data:
+            row.pop('_sa_instance_state', None)
+
+        df = pd.DataFrame(data)
+        return df
 
 
     def genes_no_info(self):
