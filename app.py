@@ -12,9 +12,11 @@ st.divider()
 # Place holders and tags 
 ###############################
 
-options_dataset=["X. elegans time-series","foo"]
-options_gene_selection = ['Xerophyta GeneID', "Arabidopsis ortholog", "Genes with GO term", "Genes with protein domain"]
-options_deg = ["show all genes", "Only display DEGS", "Only display up-regulted DEGs", "Only display down-regulated DEGs"]
+options_dataset=["X. elegans time-series"]
+# options_gene_selection = ['Xerophyta GeneID', "Arabidopsis ortholog", "Genes with GO term", "Genes with protein domain"]
+options_gene_selection = ['Xerophyta GeneID']
+options_deg = ["show all genes"]
+# options_deg = ["show all genes", "Only display DEGS", "Only display up-regulted DEGs", "Only display down-regulated DEGs"]
 
 genes_to_plot = ['Xele.ptg000001l.1', 'Xele.ptg000001l.116','Xele.ptg000001l.16']
 place_holder_genes= "Xele.ptg000001l.1, Xele.ptg000001l.116,Xele.ptg000001l.16"
@@ -135,13 +137,11 @@ st.sidebar.radio(
     options_deg,
     key="filter_degs")
 
-st.write(st.session_state)
 
 
 if(st.sidebar.button(label="Generate")):
     st.session_state.generate_clicked = True 
     data = retreive_expression_data()
-    # st.write(data)
     generate_plots(data)
 
 else:
@@ -157,7 +157,6 @@ else:
 
 st.divider()
 
-st.caption("For any issues or inquiries, please contact us at [**which email address?**].")
+st.caption("For any issues or inquiries, please contact us at olivermarketos@gmail.com.")
 
 
-# request_handler(gene_names, DE, plot_num, query_source)

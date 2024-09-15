@@ -21,7 +21,7 @@ def expression_plot(df):
         avg_group = group.groupby('treatment_time').agg({'log2_expression': 'mean'}).reset_index()
 
         # Plot the average line
-        ax.plot(avg_group['treatment_time'], avg_group['log2_expression'], label=f"{gene} ({treatment}) Avg", color='red', marker='o')
+        ax.plot(avg_group['treatment_time'], avg_group['log2_expression'], label=f"{gene} ({treatment}) Avg", color='black', marker='o')
 
         # Add labels and title
         ax.set_xlabel('Treatment Time')
