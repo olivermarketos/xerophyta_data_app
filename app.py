@@ -48,18 +48,55 @@ def retreive_expression_data():
     input_genes = [item.strip() for item in st.session_state.input_genes.split(',')]
 
     data = database.get_gene_expression_data(input_genes)
-    st.write(data)
+    return data
 
-
-def generate_plots():
+def generate_plots(data):
     st.subheader("Plot")
 
-    plt = plots.expression_plot(pd.DataFrame(data), input_genes)
+    figures = plots.expression_plot(data)
 
-    st.pyplot(plt)
-    st.divider()
-    if st.checkbox("Show raw data"): 
-        show_raw_data(data, genes_to_plot)
+    # Group the figures by gene_name
+    grouped_figures = {}
+
+    # Assuming the figure title contains the gene name and treatment information
+    for fig in figures:
+        # Extract the gene name from the title
+        title = fig.axes[0].get_title()
+        gene_name = title.split('|')[0].strip()  # Assuming title format: "Gene: GeneA | Treatment: Control"
+
+        if gene_name not in grouped_figures:
+            grouped_figures[gene_name] = []
+
+        grouped_figures[gene_name].append(fig)
+
+    # Display plots for each gene, side by side
+    for gene_name, gene_figures in grouped_figures.items():
+        if len(gene_figures) == 2:
+            col1, col2 = st.columns(2)  # Create two columns for side-by-side plots
+
+            # Show the first plot in the left column
+            with col1:
+                st.pyplot(gene_figures[0])
+
+            # Show the second plot in the right column
+            with col2:
+                st.pyplot(gene_figures[1])
+        else:
+            # If there's only one figure for a gene, show it in full width
+            st.pyplot(gene_figures[0])
+
+
+
+
+
+
+    # figures = plots.expression_plot(data)
+
+    # for fig in figures:
+    #     st.pyplot(fig)
+    # st.divider()
+    # if st.checkbox("Show raw data"): 
+    #     show_raw_data(data, genes_to_plot)
 ###############################
 #Side Bar
 ###############################
@@ -104,8 +141,9 @@ st.write(st.session_state)
 
 if(st.sidebar.button(label="Generate")):
     st.session_state.generate_clicked = True 
-    retreive_expression_data()
-    # generate_plots()
+    data = retreive_expression_data()
+    # st.write(data)
+    generate_plots(data)
 
 else:
     instruction_page()

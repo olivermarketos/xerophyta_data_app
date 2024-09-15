@@ -4,9 +4,38 @@ import matplotlib.pyplot as plt
 
 
 
-def expression_plot(df, genes):
+def expression_plot(df):
+   
+    figures = []
+    grouped = df.groupby(['gene_name', 'treatment'])
 
-    filtered_df = df[df['gene_name'].isin(genes)]
+    # Iterate over the groups and plot each
+    for (gene, treatment), group in grouped:
+        # Create a new figure for each gene and treatment
+        fig, ax = plt.subplots(figsize=(8, 6))
+
+        # Plot points for individual replicates
+        ax.scatter(group['treatment_time'], group['log2_expression'], label='Replicates', color='blue', alpha=0.6)
+        
+        # Calculate the mean log2_expression for each treatment_time
+        avg_group = group.groupby('treatment_time').agg({'log2_expression': 'mean'}).reset_index()
+
+        # Plot the average line
+        ax.plot(avg_group['treatment_time'], avg_group['log2_expression'], label=f"{gene} ({treatment}) Avg", color='red', marker='o')
+
+        # Add labels and title
+        ax.set_xlabel('Treatment Time')
+        ax.set_ylabel('Log2 Expression')
+        ax.set_title(f"Gene: {gene} | {treatment}hydration   ")
+        ax.legend()
+
+        figures.append(fig)
+    return figures
+
+
+
+def expression_plot_old(df):
+
     bins = [0, 3, 6, 9,12,15,24,25,26,28,32,36,72]
 
     mean_log2_expression =[]
