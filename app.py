@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import data_connector
 import plots
 import db
 st.title('Xerophyta Data Explorer')

@@ -69,7 +69,7 @@ def add_gene_nuc_seq():
 
 def add_annotation_data():
     database = db.DB()
-    data = pd.read_csv("data/Xelegans_ALL_Arabidopsis_annotation_topblast.csv")
+    data = pd.read_csv("data/Xelegans_topBlasthit_Arabidopsis_annot150424.csv")
     print(data.head())
     database.batch_create_or_update(models.Gene_info, data.to_dict("records"), "gene_name")
 
@@ -95,8 +95,10 @@ def add_uniprot_id_mapping():
     df['At_locus_id'] = df['Gene Names'].apply(extract_arabidopsis_locus)
     df['uniprot_id'] = df["Hit_ACC"]
 
-    df['Gene Names'] = df["Gene Names"].apply(remove_arabidopsis_locus)
+    df['At_gene_name'] = df["Gene Names"].apply(remove_arabidopsis_locus)
     print(df)
+
+
 
 
 def remove_arabidopsis_locus(gene_name):
@@ -114,7 +116,8 @@ def extract_arabidopsis_locus(gene_name):
 
 def init_db():
     create_new_db()
-    add_gene_names()
+    add_gene_nuc_seq()
+    # add_gene_names()
     add_rna_seq()
 
 if __name__ == "__main__":
