@@ -69,9 +69,20 @@ def add_gene_nuc_seq():
 
 def add_annotation_data():
     database = db.DB()
-    data = pd.read_csv("data/Xelegans_topBlasthit_Arabidopsis_annot150424.csv")
-    print(data.head())
-    database.batch_create_or_update(models.Gene_info, data.to_dict("records"), "gene_name")
+    # df = pd.read_csv("data/20240918_ALL_topblast_blastx.csv")
+    df = pd.read_csv("data/20240918_Arabidopsis_topblast_blastx.csv")
+    df = df.rename(columns={'Sequence name':'gene_name',
+                            'Sequence desc.':'sequence_description',
+                            'Hit desc.':'Hit_desc',
+                            'Hit ACC':'Hit_ACC',
+                            'E-Value':'blast_min_e_value',
+                            'Bit-Score':'Bit_Score',
+                            'Alignment length':'Alignment_length',
+                            })
+    df = df.drop('Sequence length', axis=1)
+    print(df.head())
+
+    database.batch_create_or_update(models.Gene_info, df.to_dict("records"), "gene_name")
 
 def get_expression():
     """
@@ -90,15 +101,27 @@ def get_expression():
     print(treatment_time)
 
 def add_uniprot_id_mapping():
+
     database = db.DB()
-    df = pd.read_csv("data/uniprot_to_At_gene_all.csv")
-    df['At_locus_id'] = df['Gene Names'].apply(extract_arabidopsis_locus)
-    df['uniprot_id'] = df["Hit_ACC"]
+    print("Reading in data...")
+    df = pd.read_csv("data/uniprot/arab_idmapping_2024_09_22.csv")
+    
+    print("Done.\nRefactoring data...")
 
-    df['At_gene_name'] = df["Gene Names"].apply(remove_arabidopsis_locus)
-    print(df)
+    df = df.rename(columns={'Entry':'Hit_ACC',        
+                            'Gene Names':'At_gene_name'
+                            })
+    
+    df = df[['Hit_ACC',"At_gene_name"]]
+    df['At_gene_name'] = df['At_gene_name'].astype(str)
+    df['At_locus_id'] = df['At_gene_name'].apply(extract_arabidopsis_locus)
 
+    df['At_gene_name'] = df["At_gene_name"].apply(remove_arabidopsis_locus)
+    # database.batch_create_or_update(models.Gene_info, df.to_dict("records"), "Hit_ACC")
+    print("Done.\nAdding to database...")
 
+    database.add_gene_locus(models.Gene_info, df.to_dict("records"))
+    print("Done.")
 
 
 def remove_arabidopsis_locus(gene_name):

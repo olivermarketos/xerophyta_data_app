@@ -35,6 +35,10 @@ class Gene_expressions(Base):
     # def __repr__(self):
     #     return(f"{self.gene_name} {self.log2_expression} {self.experiment_time}")
 
+# class Onset_DE(Base):
+#     __tablename__ = "onset_de"
+#     gene_name = Column(String, ForeignKey('gene_info.gene_name'))
+
 
 class Gene_info(Base):
     __tablename__ = 'gene_info'

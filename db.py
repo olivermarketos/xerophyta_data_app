@@ -82,6 +82,28 @@ class DB():
             self.session.commit()
         return instances[-1] if instances else None
 
+    def add_gene_locus(self, model, values):
+        """ 
+        Update gene_location in the database by mapping it to Hit_acc.
+
+        Parameters:
+            model: the model (or table) to update
+            df: a pandas DataFrame containing 'Hit_acc' and 'gene_location'
+        """
+
+        for i, value in enumerate(values):
+            # Find the instance by matching Hit_acc
+            instances = self.session.query(model).filter_by(Hit_ACC=value['Hit_ACC']).all()
+            
+            for instance in instances:
+                if instance is not None:
+                    instance.At_locus_id = value['At_locus_id']
+                    instance.At_gene_name = value['At_gene_name']
+
+
+        if instances:
+            self.session.commit()
+
 
     def get_gene_expression_data(self, gene_list):
         """

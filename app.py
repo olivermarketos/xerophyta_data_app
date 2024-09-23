@@ -13,7 +13,7 @@ st.divider()
 
 options_dataset=["X. elegans time-series"]
 # options_gene_selection = ['Xerophyta GeneID', "Arabidopsis ortholog", "Genes with GO term", "Genes with protein domain"]
-options_gene_selection = ['Xerophyta GeneID']
+options_gene_selection = ['Xerophyta GeneID', "Arabidopsis ortholog"]
 options_deg = ["show all genes"]
 options_plot_type = ["Genes on single plot", "Genes on separate plot"]
 # options_deg = ["show all genes", "Only display DEGS", "Only display up-regulted DEGs", "Only display down-regulated DEGs"]
