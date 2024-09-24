@@ -58,7 +58,7 @@ def generate_plots(data):
     st.subheader("Plot")
 
     if st.session_state.plot_type == "Genes on single plot":
-        figures = plots.single_panel_gene_expression(data)
+        figures = plots.single_panel_gene_expression(data, st.session_state.expression_values)
         col1, col2 = st.columns(2)  # Create two columns for side-by-side plots
 
         # Show the first plot in the left column
@@ -72,7 +72,7 @@ def generate_plots(data):
    
     # plot on separate panels
     else:
-        figures = plots.multi_panel_gene_expression(data)
+        figures = plots.multi_panel_gene_expression(data, st.session_state.expression_values)
         # Group the figures by gene_name
         grouped_figures = {}
 
@@ -139,20 +139,22 @@ elif st.session_state.gene_selection == "Genes with protein domain":
     st.sidebar.text_input("Enter protein domains to search for, separated by  a comma.", key="input_genes")
 
 
+# st.sidebar.radio(
+#     "Do you wish to filter gene based on differential expression?",
+#     options_deg,
+#     key="filter_degs")
+
 st.sidebar.radio(
-    "Do you wish to filter gene based on differential expression?",
-    options_deg,
-    key="filter_degs")
+    "Dp you want to plot log2fc or normalised expression values?",
+    ["log2_expression", "normalised_expression"],
+    key="expression_values")
 
 st.sidebar.radio(
     "How would you like the expression plots to be displayed?",
     options_plot_type,
     key="plot_type")
 
-st.sidebar.radio(
-    "Dp you want to plot log2fc or normalised expression values?",
-    ["log2fc", "normalised expression"],
-    key="expression_values")
+
 
 if(st.sidebar.button(label="Generate")):
     st.session_state.generate_clicked = True

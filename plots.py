@@ -68,7 +68,7 @@ def test_multi_panel_gene_expression(df):
     # appropriate corners of each of our axes, and so long as we use the
     # right transform and disable clipping.
 
-def multi_panel_gene_expression(df):
+def multi_panel_gene_expression(df, expression_values):
    
     figures = []
     grouped = df.groupby(['gene_name', 'treatment'])
@@ -79,18 +79,18 @@ def multi_panel_gene_expression(df):
         fig, ax = plt.subplots(figsize=(8, 6))
 
         # Plot points for individual replicates
-        ax.scatter(group['treatment_time'], group['log2_expression'], label='Replicates', color='blue', alpha=0.6)
+        ax.scatter(group['treatment_time'], group[expression_values], label='Replicates', color='blue', alpha=0.6)
         
         # Calculate the mean log2_expression for each treatment_time
-        avg_group = group.groupby('treatment_time').agg({'log2_expression': 'mean'}).reset_index()
+        avg_group = group.groupby('treatment_time').agg({expression_values: 'mean'}).reset_index()
 
         # Plot the average line
-        ax.plot(avg_group['treatment_time'], avg_group['log2_expression'], label=f"{gene} ({treatment}) Avg", color='black', marker='o')
+        ax.plot(avg_group['treatment_time'], avg_group[expression_values], label=f"{gene} ({treatment}) Avg", color='black', marker='o')
 
         ax.set_xticks(group['treatment_time'])
         # Add labels and title
         ax.set_xlabel('Treatment Time')
-        ax.set_ylabel('Log2 Expression')
+        ax.set_ylabel(f'{expression_values}')
         ax.set_title(f"Gene: {gene} | {treatment}hydration   ")
         ax.legend()
 
@@ -98,7 +98,7 @@ def multi_panel_gene_expression(df):
     return figures
 
 
-def single_panel_gene_expression(df):
+def single_panel_gene_expression(df, expression_values):
     figures = []
     
     # Group by treatment (this will group all genes by their treatments)
@@ -114,13 +114,13 @@ def single_panel_gene_expression(df):
         unique_gene_labels = [] 
         for gene, gene_group in group.groupby('gene_name'):
             # Plot points for individual replicates
-            ax.scatter(gene_group['treatment_time'], gene_group['log2_expression'], label=f'{gene}', alpha=0.6)
+            ax.scatter(gene_group['treatment_time'], gene_group[expression_values], label=f'{gene}', alpha=0.6)
 
             # Calculate the mean log2_expression for each treatment_time
-            avg_gene_group = gene_group.groupby('treatment_time').agg({'log2_expression': 'mean'}).reset_index()
+            avg_gene_group = gene_group.groupby('treatment_time').agg({expression_values: 'mean'}).reset_index()
 
             # Plot the average line for this gene
-            ax.plot(avg_gene_group['treatment_time'], avg_gene_group['log2_expression'], marker='o')
+            ax.plot(avg_gene_group['treatment_time'], avg_gene_group[expression_values], marker='o')
 
             if gene not in unique_gene_labels:
                 unique_gene_labels.append(gene)
@@ -129,7 +129,7 @@ def single_panel_gene_expression(df):
 
         # Add labels and title
         ax.set_xlabel('Treatment Time',)
-        ax.set_ylabel('Log2 Expression')
+        ax.set_ylabel(f'{expression_values}')
         ax.set_title(f"Expression of Genes under {treatment}hydration")
 
         ax.legend()
