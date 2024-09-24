@@ -60,7 +60,8 @@ class Gene_info(Base):
     uniprot_id = Column(String)
     At_gene_name = Column(String)
     At_locus_id = Column(String)
-    # protein = Column(String, nullable=True)
+
+
     # blast_taxonomy = Column(String, nullable=True)
     # annotation_GO_ID = Column(String, nullable=True)
     # annotation_GO_term = Column(String, nullable=True)
@@ -73,3 +74,39 @@ class Gene_info(Base):
 
     # arabidopsis_homolog = Column(String, nullable=True)
     # Sequence_length
+'''
+class GO_terms(Base):
+    __tablename__ = 'go_terms'
+    go_id = Column(String, primary_key=True)
+    go_name = Column(String)
+    go_category = Column(String)
+
+class Gene_to_GO(Base):
+    __tablename__ = 'gene_to_go'
+
+    gene_name = Column(String, ForeignKey('gene_info.gene_name') )
+    go_id = Column(String,ForeignKey('go_terms.go_id'))
+
+class Enzymes(Base):
+    __tablename__ = 'enzymes'
+    enzyme_code = Column(String, primary_key=True)
+    enzyme_name = Column(String)
+
+class Gene_to_enzyme(Base):
+    __tablename__ = 'gene_to_enzyme'
+
+    gene_name = Column(String, ForeignKey('gene_info.gene_name') )
+    enzyme_code = Column(String,ForeignKey('enzymes.enzyme_code'))
+
+class InterPro(Base):
+    __tablename__ = "interpro"
+    interpro_id = Column(String, primary_key=True)
+    interpro_name = Column(String)
+
+class Gene_to_interpro(Base):
+    __tablename__ = 'gene_to_interpro'
+
+    gene_name = Column(String, ForeignKey('gene_info.gene_name') )
+    interpro_id = Column(String,ForeignKey('interpro.interpro_id'))
+
+'''

@@ -28,28 +28,31 @@ place_holder_genes= "Xele.ptg000001l.1, Xele.ptg000001l.116,Xele.ptg000001l.16"
 
 @st.cache_data
 def show_raw_data(df, genes):
-
+   
     filtered_df = df[df['gene_name'].isin(genes)]
-
     st.subheader("Raw Data")
     st.write(
         filtered_df
     )
 
-def convert_At_to_Xe_ID():
-    pass
 
 def instruction_page():
     st.subheader("Instruction page")
     st.text("Fill in values on the left then click generate")
 
-@st.cache_data
 def retreive_expression_data():
     database = db.DB()
     input_genes = [item.strip() for item in st.session_state.input_genes.split(',')]
     
+    if st.session_state.gene_input_type == "Arab_homolog":
+        input_genes = database.get_gene_from_arab_homolog(input_genes)
+        input_genes = [x[0] for x in input_genes]
+
     data = database.get_gene_expression_data(input_genes)
     return data
+
+
+
 
 def generate_plots(data):
     st.subheader("Plot")
@@ -98,24 +101,15 @@ def generate_plots(data):
                 # If there's only one figure for a gene, show it in full width
                 st.pyplot(gene_figures[0])
 
-
-
-
-
-
-    # figures = plots.expression_plot(data)
-
-    # for fig in figures:
-    #     st.pyplot(fig)
-    # st.divider()
-    # if st.checkbox("Show raw data"): 
-    #     show_raw_data(data, genes_to_plot)
 ###############################
 #Side Bar
 ###############################
 
 if 'generate_clicked' not in st.session_state:
     st.session_state.generate_clicked = False
+
+if 'gene_input_type' not in st.session_state:
+    st.session_state.gene_input_type = "Gene_ID"
 
 st.sidebar.radio(
     "Select a dataset:",
@@ -131,11 +125,12 @@ st.sidebar.radio(
 
 if st.session_state.gene_selection =="Xerophyta GeneID":
     st.sidebar.text_input("Enter Xerophyta GeneIDs separated by  a comma.",place_holder_genes, key="input_genes")
+    st.session_state.gene_input_type = "Gene_ID"
 
 elif st.session_state.gene_selection =="Arabidopsis ortholog":
-    st.sidebar.text_input("Enter Arabidopsis orthologues separated by  a comma.","ERF1, WRKY33, AT1G55020, AT5G42650", key="input_genes")
-    convert_At_to_Xe_ID()
-    
+    st.sidebar.text_input("Enter Arabidopsis orthologues separated by  a comma.","At4g12010, OXA1", key="input_genes")
+    st.session_state.gene_input_type = "Arab_homolog"
+
 
 elif st.session_state.gene_selection =="Genes with GO term":
     st.sidebar.text_input("Enter GO term description or ID separated by  a comma.","jasmonic acid mediated signaling pathway", key="input_genes")
@@ -154,6 +149,11 @@ st.sidebar.radio(
     options_plot_type,
     key="plot_type")
 
+st.sidebar.radio(
+    "Dp you want to plot log2fc or normalised expression values?",
+    ["log2fc", "normalised expression"],
+    key="expression_values")
+
 if(st.sidebar.button(label="Generate")):
     st.session_state.generate_clicked = True
     if st.session_state.input_genes:
@@ -169,9 +169,6 @@ else:
 ###############################
 # End Side Bar
 ###############################
-
-
-
 
 st.divider()
 

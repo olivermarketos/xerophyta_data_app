@@ -1,5 +1,6 @@
 import sqlalchemy as sq
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import or_
 import models
 import pandas as pd
 
@@ -129,6 +130,17 @@ class DB():
 
         df = pd.DataFrame(data)
         return df
+
+    def get_gene_from_arab_homolog(self, At_list):
+        
+        query = self.session.query(models.Gene_info.gene_name, models.Gene_info.At_gene_name).filter(
+            or_(
+            models.Gene_info.At_locus_id.in_(At_list),
+            *[models.Gene_info.At_gene_name.like(f'%{gene}%') for gene in At_list]
+            )
+        ).all()
+        
+        return query
 
     def get_uniprot_id(self):
         query = self.session.query(models.Gene_info.Hit_ACC).all()
