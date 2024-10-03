@@ -8,11 +8,11 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
-# xe_gene_homologue_link = Table(
-#     'xe_gene_homologue_link', Base.metadata,
-#     Column('xe_gene_id', String, ForeignKey('gene_info.gene_name')),
-#     Column('arabidopsis_id', Integer, ForeignKey('arabidopsis_homologues.arabidopsis_id'))
-# )
+xe_gene_homologue_link = Table(
+    'xe_gene_homologue_link', Base.metadata,
+    Column('gene_name', String, ForeignKey('gene_info.gene_name')),
+    Column('arabidopsis_id', Integer, ForeignKey('arabidopsis_homologues.arabidopsis_id'))
+)
 
 
 class Gene_expressions(Base):
@@ -54,27 +54,25 @@ class Gene_info(Base):
 
     # homologues = relationship('Arabidopsis_Homologue', secondary=xe_gene_homologue_link, back_populates='gene_info')
 
-# class Arabidopsis_Homologue(Base):
-#     __tablename__ = 'arabidopsis_homologues'
-#     arabidopsis_id = Column(Integer, primary_key=True, autoincrement=True)
-#     accession_number = Column(String, unique=True, nullable=True)
-#     at_locus = Column(String, nullable=True)
+class Arabidopsis_homologue(Base):
+    __tablename__ = 'arabidopsis_homologues'
+    arabidopsis_id = Column(Integer, primary_key=True, autoincrement=True)
+    accession_number = Column(String, unique=True, nullable=True)
+    at_locus = Column(String, nullable=True)
     
-#     # Many-to-many relationship with Xe genes
-#     gene_info = relationship('Gene_info', secondary=xe_gene_homologue_link, back_populates='homologues')
+    # Many-to-many relationship with Xe genes
+    gene_info = relationship('Gene_info', secondary=xe_gene_homologue_link, back_populates='homologues')
 
-#     # One-to-many relationship with common names
-#     common_names = relationship('AtCommonName', back_populates='homologue')
+    # One-to-many relationship with common names
+    common_names = relationship('AtCommonName', back_populates='homologue')
 
-# class AtCommonName(Base):
-#     __tablename__ = 'At_common_names'
-#     common_name_id = Column(Integer, primary_key=True, autoincrement=True)
-#     name = Column(String, nullable=False)
+class AtCommonName(Base):
+    __tablename__ = 'At_common_names'
+    common_name_id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    arabidopsis_id = Column(Integer, ForeignKey('arabidopsis_homologues.arabidopsis_id'))
     
-#     # Foreign key linking back to ArabidopsisHomologue
-#     arabidopsis_id = Column(Integer, ForeignKey('arabidopsis_homologues.arabidopsis_id'))
-    
-#     homologue = relationship('ArabidopsisHomologue', back_populates='At_common_names')
+    homologue = relationship('ArabidopsisHomologue', back_populates='At_common_names')
 
 # class GO_terms(Base):
 #     __tablename__ = 'go_terms'

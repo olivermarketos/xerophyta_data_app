@@ -31,7 +31,7 @@ def upgrade() -> None:
 
     # Create the common_names table
     op.create_table(
-        'common_names',
+        'At_common_names',
         sa.Column('common_name_id', sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('arabidopsis_id', sa.Integer(), sa.ForeignKey('arabidopsis_homologues.arabidopsis_id')),
@@ -48,4 +48,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    pass
+    # Drop the new tables (in reverse order)
+    op.drop_table('xe_gene_homologue_link')
+    op.drop_table('At_common_names')
+    op.drop_table('arabidopsis_homologues')
