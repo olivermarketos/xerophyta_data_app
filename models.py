@@ -8,6 +8,13 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
+# xe_gene_homologue_link = Table(
+#     'xe_gene_homologue_link', Base.metadata,
+#     Column('xe_gene_id', String, ForeignKey('gene_info.gene_name')),
+#     Column('arabidopsis_id', Integer, ForeignKey('arabidopsis_homologues.arabidopsis_id'))
+# )
+
+
 class Gene_expressions(Base):
     __tablename__ = "gene_expressions"
 
@@ -21,23 +28,6 @@ class Gene_expressions(Base):
     treatment = Column("treatment", String)
     replicate = Column("replicate", Integer)
 
-    # def __init__(self, g_name, t_time, exp_time, norm_exp,log_exp, species, treatment, rep ):
-    #     self.gene_name = g_name
-    #     self.treatment_time = t_time
-    #     self.experiment_time = exp_time
-    #     self.normalised_expression = norm_exp
-    #     self.log2_expression = log_exp
-    #     self.species = species
-    #     self.treatment = treatment
-    #     self.replicate = rep
-
-
-    # def __repr__(self):
-    #     return(f"{self.gene_name} {self.log2_expression} {self.experiment_time}")
-
-# class Onset_DE(Base):
-#     __tablename__ = "onset_de"
-#     gene_name = Column(String, ForeignKey('gene_info.gene_name'))
 
 
 class Gene_info(Base):
@@ -58,55 +48,85 @@ class Gene_info(Base):
     differentially_expressed = Column(Boolean, nullable=True)
 
     uniprot_id = Column(String)
-    At_gene_name = Column(String)
-    At_locus_id = Column(String)
 
+    # arabidopsis_gene_names = relationship("ArabidopsisGeneNames", back_populates="gene_info")
+    # arabidopsis_gene_loci = relationship("ArabidopsisGeneLoci", back_populates="gene_info")
 
-    # blast_taxonomy = Column(String, nullable=True)
-    # annotation_GO_ID = Column(String, nullable=True)
-    # annotation_GO_term = Column(String, nullable=True)
-    # enzyme_code = Column(String, nullable=True)
-    # enzyme_name = Column(String, nullable=True)
-    # interPro_accession = Column(String, nullable=True)
-    # interPro_name = Column(String, nullable=True)
+    # homologues = relationship('Arabidopsis_Homologue', secondary=xe_gene_homologue_link, back_populates='gene_info')
+
+# class Arabidopsis_Homologue(Base):
+#     __tablename__ = 'arabidopsis_homologues'
+#     arabidopsis_id = Column(Integer, primary_key=True, autoincrement=True)
+#     accession_number = Column(String, unique=True, nullable=True)
+#     at_locus = Column(String, nullable=True)
     
-    # aa_sequence = Column(Text, nullable=True)
+#     # Many-to-many relationship with Xe genes
+#     gene_info = relationship('Gene_info', secondary=xe_gene_homologue_link, back_populates='homologues')
 
-    # arabidopsis_homolog = Column(String, nullable=True)
-    # Sequence_length
-'''
-class GO_terms(Base):
-    __tablename__ = 'go_terms'
-    go_id = Column(String, primary_key=True)
-    go_name = Column(String)
-    go_category = Column(String)
+#     # One-to-many relationship with common names
+#     common_names = relationship('AtCommonName', back_populates='homologue')
 
-class Gene_to_GO(Base):
-    __tablename__ = 'gene_to_go'
+# class AtCommonName(Base):
+#     __tablename__ = 'At_common_names'
+#     common_name_id = Column(Integer, primary_key=True, autoincrement=True)
+#     name = Column(String, nullable=False)
+    
+#     # Foreign key linking back to ArabidopsisHomologue
+#     arabidopsis_id = Column(Integer, ForeignKey('arabidopsis_homologues.arabidopsis_id'))
+    
+#     homologue = relationship('ArabidopsisHomologue', back_populates='At_common_names')
 
-    gene_name = Column(String, ForeignKey('gene_info.gene_name') )
-    go_id = Column(String,ForeignKey('go_terms.go_id'))
+# class GO_terms(Base):
+#     __tablename__ = 'go_terms'
+#     go_id = Column(String, primary_key=True)
+#     go_name = Column(String)
+#     go_category = Column(String)
 
-class Enzymes(Base):
-    __tablename__ = 'enzymes'
-    enzyme_code = Column(String, primary_key=True)
-    enzyme_name = Column(String)
+# class Gene_to_GO(Base):
+#     __tablename__ = 'gene_to_go'
 
-class Gene_to_enzyme(Base):
-    __tablename__ = 'gene_to_enzyme'
+#     gene_name = Column(String, ForeignKey('gene_info.gene_name') )
+#     go_id = Column(String,ForeignKey('go_terms.go_id'))
 
-    gene_name = Column(String, ForeignKey('gene_info.gene_name') )
-    enzyme_code = Column(String,ForeignKey('enzymes.enzyme_code'))
+# class Enzymes(Base):
+#     __tablename__ = 'enzymes'
+#     enzyme_code = Column(String, primary_key=True)
+#     enzyme_name = Column(String)
 
-class InterPro(Base):
-    __tablename__ = "interpro"
-    interpro_id = Column(String, primary_key=True)
-    interpro_name = Column(String)
+# class Gene_to_enzyme(Base):
+#     __tablename__ = 'gene_to_enzyme'
 
-class Gene_to_interpro(Base):
-    __tablename__ = 'gene_to_interpro'
+#     gene_name = Column(String, ForeignKey('gene_info.gene_name') )
+#     enzyme_code = Column(String,ForeignKey('enzymes.enzyme_code'))
 
-    gene_name = Column(String, ForeignKey('gene_info.gene_name') )
-    interpro_id = Column(String,ForeignKey('interpro.interpro_id'))
+# class InterPro(Base):
+#     __tablename__ = "interpro"
+#     interpro_id = Column(String, primary_key=True)
+#     interpro_name = Column(String)
 
-'''
+# class Gene_to_interpro(Base):
+#     __tablename__ = 'gene_to_interpro'
+
+#     gene_name = Column(String, ForeignKey('gene_info.gene_name') )
+#     interpro_id = Column(String,ForeignKey('interpro.interpro_id'))
+
+
+# class ArabidopsisGeneNames(Base):
+#     __tablename__ = 'At_gene_names'
+
+#     id = Column(Integer, primary_key=True, autoincrement=True)
+#     gene_name = Column(String, ForeignKey('gene_info.gene_name'))
+#     at_gene_name = Column(String, nullable=False)
+
+#     # Relationship to the gene_info table
+#     gene_info = relationship("Gene_info", back_populates="At_gene_names")
+
+# class ArabidopsisGeneLoci(Base):
+#     __tablename__ = 'At_gene_loci'
+
+#     id = Column(Integer, primary_key=True, autoincrement=True)
+#     gene_name = Column(String, ForeignKey('gene_info.gene_name'))
+#     at_gene_loci = Column(String)
+
+#     # Relationship to the gene_info table
+#     gene_info = relationship("Gene_info", back_populates="At_gene_loci")

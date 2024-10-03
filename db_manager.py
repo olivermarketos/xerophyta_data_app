@@ -14,7 +14,7 @@ Accepted command-line arguments:
 
 import argparse
 import re
-import models
+import models as models
 import os
 import sqlalchemy as sq
 import db as db

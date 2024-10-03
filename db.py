@@ -1,7 +1,7 @@
 import sqlalchemy as sq
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import or_
-import models
+import models as models
 import pandas as pd
 
 class DB():
@@ -133,15 +133,32 @@ class DB():
 
     def get_gene_from_arab_homolog(self, At_list):
         
-        query = self.session.query(models.Gene_info.gene_name, models.Gene_info.At_gene_name).filter(
+        query = self.session.query(models.Gene_info.gene_name, models.Gene_info.At_gene_name, models.Gene_info.At_locus_id).filter(
             or_(
             models.Gene_info.At_locus_id.in_(At_list),
-            *[models.Gene_info.At_gene_name.like(f'%{gene}%') for gene in At_list]
+            # *[models.Gene_info.At_gene_name.like(f'%{gene}%') for gene in At_list]
+            models.Gene_info.At_gene_name.in_(At_list)
             )
         ).all()
         
-        return query
 
+        # Extract the genes from the query results
+        matched_genes = {result.At_gene_name for result in query}
+        [print(gene) for gene in matched_genes]
+        # Find which genes didn't match
+        unmatched_genes = [gene for gene in At_list if gene not in matched_genes]
+        print(unmatched_genes)
+
+
+        return query, unmatched_genes
+    
+    def get_gene_from_arab_name(self, At_list):
+        
+        query = self.session.query(models.Gene_info.gene_name, models.Gene_info.At_gene_name).filter(
+            *[models.Gene_info.At_gene_name.like(f'%{gene}%') for gene in At_list]
+            ).all()
+        return query
+    
     def get_uniprot_id(self):
         query = self.session.query(models.Gene_info.Hit_ACC).all()
         return query
