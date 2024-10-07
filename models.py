@@ -28,8 +28,6 @@ class Gene_expressions(Base):
     treatment = Column("treatment", String)
     replicate = Column("replicate", Integer)
 
-
-
 class Gene_info(Base):
     __tablename__ = 'gene_info'
     gene_name = Column(String, primary_key=True)
@@ -52,9 +50,9 @@ class Gene_info(Base):
     # arabidopsis_gene_names = relationship("ArabidopsisGeneNames", back_populates="gene_info")
     # arabidopsis_gene_loci = relationship("ArabidopsisGeneLoci", back_populates="gene_info")
 
-    # homologues = relationship('Arabidopsis_Homologue', secondary=xe_gene_homologue_link, back_populates='gene_info')
+    homologues = relationship('Arabidopsis_Homologue', secondary=xe_gene_homologue_link, back_populates='gene_info')
 
-class Arabidopsis_homologue(Base):
+class Arabidopsis_Homologue(Base):
     __tablename__ = 'arabidopsis_homologues'
     arabidopsis_id = Column(Integer, primary_key=True, autoincrement=True)
     accession_number = Column(String, unique=True, nullable=True)
@@ -64,15 +62,15 @@ class Arabidopsis_homologue(Base):
     gene_info = relationship('Gene_info', secondary=xe_gene_homologue_link, back_populates='homologues')
 
     # One-to-many relationship with common names
-    common_names = relationship('AtCommonName', back_populates='homologue')
+    common_names = relationship('At_Common_Names', back_populates='homologue')
 
-class AtCommonName(Base):
+class At_Common_Names(Base):
     __tablename__ = 'At_common_names'
     common_name_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
     arabidopsis_id = Column(Integer, ForeignKey('arabidopsis_homologues.arabidopsis_id'))
     
-    homologue = relationship('ArabidopsisHomologue', back_populates='At_common_names')
+    homologue = relationship('Arabidopsis_Homologue', back_populates='common_names')
 
 # class GO_terms(Base):
 #     __tablename__ = 'go_terms'

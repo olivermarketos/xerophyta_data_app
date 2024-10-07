@@ -100,7 +100,7 @@ def get_expression():
     print(time)
     print(treatment_time)
 
-def add_uniprot_id_mapping():
+def add_at_homologues():
 
     database = db.DB()
     print("Reading in data...")
@@ -108,24 +108,41 @@ def add_uniprot_id_mapping():
     
     print("Done.\nRefactoring data...")
 
-    df = df.rename(columns={'Entry':'Hit_ACC',        
+    df = df.rename(columns={'Entry':'acc_num',        
                             'Gene Names':'At_gene_name'
                             })
     
-    df = df[['Hit_ACC',"At_gene_name"]]
+    df = df[['acc_num',"At_gene_name"]]
+    print(df)
     df['At_gene_name'] = df['At_gene_name'].astype(str)
-    df['At_locus_id'] = df['At_gene_name'].apply(extract_arabidopsis_locus)
 
-    df['At_gene_name'] = df["At_gene_name"].apply(remove_arabidopsis_locus)
-    # database.batch_create_or_update(models.Gene_info, df.to_dict("records"), "Hit_ACC")
+    df['at_locus'] = df['At_gene_name'].apply(extract_arabidopsis_locus)
+    df['common_name'] = df['At_gene_name'].astype(str)
+
+    df['common_name'] = df["common_name"].apply(extract_common_names)
     print("Done.\nAdding to database...")
 
-    database.add_gene_locus(models.Gene_info, df.to_dict("records"))
-    print("Done.")
+    for _, row in df.iterrows():
+        # Call the database method for each row
+        database.add_at_homologues(
+            acc_num=row['acc_num'],
+            at_locus=row['at_locus'],
+            common_name_list=row['common_name']
+        )
 
 
-def remove_arabidopsis_locus(gene_name):
-    return re.sub(r'At[1-5]g\d{5}', '', gene_name).strip()  # Remove the locus and strip any extra spaces
+def extract_common_names(gene_name):
+    extracted_names = []  # List to store the extracted names
+    at_locus_pattern = r"(At\d{1}g\d{5}|AtCg\d{5})"
+
+    match = re.search(at_locus_pattern, gene_name)
+
+    if match:
+        # Extract everything to the left of the matched Arabidopsis locus
+        left_part = gene_name[:match.start()].strip()
+        extracted_names=left_part.split()
+          # Add the extracted part to the list
+    return extracted_names
 
 
 def extract_arabidopsis_locus(gene_name):
@@ -181,8 +198,8 @@ if __name__ == "__main__":
     elif args.command == "add_gene_info":
         add_annotation_data()
     
-    elif args.command == "add_uniprot":
-        add_uniprot_id_mapping()
+    elif args.command == "add_homologues":
+        add_at_homologues()
     else:
         print("Unrecognized command")
 

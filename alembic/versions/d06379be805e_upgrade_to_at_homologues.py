@@ -40,9 +40,9 @@ def upgrade() -> None:
     # Create the many-to-many association table between xe_genes and arabidopsis_homologues
     op.create_table(
         'xe_gene_homologue_link',
-        sa.Column('xe_gene_id', sa.Integer(), sa.ForeignKey('xe_genes.xe_gene_id')),
+        sa.Column('gene_name', sa.Integer(), sa.ForeignKey('gene_info.gene_names')),
         sa.Column('arabidopsis_id', sa.Integer(), sa.ForeignKey('arabidopsis_homologues.arabidopsis_id')),
-        sa.PrimaryKeyConstraint('xe_gene_id', 'arabidopsis_id')
+        sa.PrimaryKeyConstraint('gene_name', 'arabidopsis_id')
     )
 
 

@@ -3,6 +3,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import or_
 import models as models
 import pandas as pd
+from sqlalchemy.orm import joinedload
+from sqlalchemy import or_, func
+
 
 class DB():
 
@@ -106,6 +109,42 @@ class DB():
             self.session.commit()
 
 
+    # pass dictionary with 
+    def add_at_homologues(self, acc_num, at_locus, common_name_list):
+        xe_gene = self.session.query(models.Gene_info).filter(models.Gene_info.Hit_ACC== acc_num).all()
+    
+        # Step 3: Create or retrieve Arabidopsis homologue data
+        # First, check if the homologue already exists
+        homologue = self.session.query(models.Arabidopsis_Homologue).filter(models.Arabidopsis_Homologue.accession_number==acc_num).first()
+
+        # If the homologue doesn't exist, create it
+        if homologue is None:
+            homologue = models.Arabidopsis_Homologue(
+                accession_number=acc_num,
+                at_locus= at_locus # Example locus
+            )
+            self.session.add(homologue)
+
+        # Step 4: Add common names
+        # Assuming we have multiple common names for this accession number
+
+        for name in common_name_list:
+        #     # Check if the common name exists for this homologue
+            existing_common_name = self.session.query(models.At_Common_Names).filter_by(name=name, arabidopsis_id=homologue.arabidopsis_id).first()
+
+            if existing_common_name is None:
+                common_name = models.At_Common_Names(name=name, homologue=homologue)
+                self.session.add(common_name)
+
+        #  Step 5: Associate the XeGene with the Arabidopsis homologue (many-to-many relationship)
+        for gene in xe_gene:
+
+            if homologue not in gene.homologues:
+                gene.homologues.append(homologue)
+
+        # Step 6: Commit the transaction
+        self.session.commit()
+
     def get_gene_expression_data(self, gene_list):
         """
         Query the database to retrieve gene expression data for a list of genes.
@@ -133,24 +172,20 @@ class DB():
 
     def get_gene_from_arab_homolog(self, At_list):
         
-        query = self.session.query(models.Gene_info.gene_name, models.Gene_info.At_gene_name, models.Gene_info.At_locus_id).filter(
-            or_(
-            models.Gene_info.At_locus_id.in_(At_list),
-            # *[models.Gene_info.At_gene_name.like(f'%{gene}%') for gene in At_list]
-            models.Gene_info.At_gene_name.in_(At_list)
+        result =(self.session.query(models.Gene_info.gene_name, models.Arabidopsis_Homologue.at_locus, models.At_Common_Names.name)
+            .join(models.Gene_info.homologues)  # Join Gene_info with Arabidopsis_Homologue using the relationship
+            .join(models.Arabidopsis_Homologue.common_names)  # Join Arabidopsis_Homologue with At_Common_Names
+            .filter(
+                or_(
+                    func.lower(models.Arabidopsis_Homologue.at_locus).in_([x.lower() for x in At_list]),  # Case-insensitive for homologues
+                    func.lower(models.At_Common_Names.name).in_([x.lower() for x in At_list])  # Case-insensitive for common names
+                )
             )
-        ).all()
+            .all()
+        )
         
-
-        # Extract the genes from the query results
-        matched_genes = {result.At_gene_name for result in query}
-        [print(gene) for gene in matched_genes]
-        # Find which genes didn't match
-        unmatched_genes = [gene for gene in At_list if gene not in matched_genes]
-        print(unmatched_genes)
-
-
-        return query, unmatched_genes
+   
+        return result 
     
     def get_gene_from_arab_name(self, At_list):
         
