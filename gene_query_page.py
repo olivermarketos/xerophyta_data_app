@@ -105,7 +105,7 @@ if st.session_state.gene_selection =="Xerophyta GeneID":
     st.session_state.gene_input_type = "Gene_ID"
 
 elif st.session_state.gene_selection =="Arabidopsis ortholog":
-    st.sidebar.text_area("Enter Arabidopsis orthologues separated by  a comma.","At4g12010, OXA1", key="input_genes")
+    st.sidebar.text_area("Enter Arabidopsis orthologues separated by a comma, space or each entry on new line.","At4g12010, OXA1", key="input_genes")
     st.session_state.gene_input_type = "Arab_homolog"
 
 
