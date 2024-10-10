@@ -186,14 +186,14 @@ class DB():
         return result 
     
     def match_homologue_to_Xe_gene(self, At_list):
-        # Create a DataFrame with the queries
-        query_df = pd.DataFrame()
-        query_df["Query"] = At_list
+       
 
         # Get the hits from the database
         hits = self.get_gene_from_arab_homolog(At_list)
 
-        # Prepare the results DataFrame
+        
+        
+        # # Prepare the results DataFrame
         results = []
         for hit in hits:
             xele_gene, at_gene, common_name = hit
@@ -205,18 +205,30 @@ class DB():
 
             results.append({
                 'Query': query,  # Add the matching query here for alignment
-                'Xele_Gene': xele_gene,
+                'X. elegans gene': xele_gene,
                 'At_Gene': at_gene,
                 'Common_name': common_name
             })
+        
+        for gene in At_list:
 
-        # Create a DataFrame from the results
+                    # Search for the string in all values in each dictionary
+            matches = [item for item in results if any(gene.lower() in str(value).lower() for value in item.values())]
+
+            # Check if there are no matches
+            if not matches:
+                results.append({
+                'Query': gene,  # Add the matching query here for alignment
+                'X. elegans gene': '',
+                'At_Gene': '',
+                'Common_name': ''
+            })            
+                
+
         results_df = pd.DataFrame(results)
 
-        # Merge the query DataFrame with the results DataFrame
-        final_df = pd.merge(query_df, results_df, on='Query', how='left')
 
-        return final_df
+        return results_df
 
     def get_gene_from_arab_name(self, At_list):
         

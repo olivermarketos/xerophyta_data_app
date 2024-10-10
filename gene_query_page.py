@@ -82,7 +82,6 @@ def retreive_gene_info():
 
 
 
-
 if 'generate_clicked' not in st.session_state:
     st.session_state.generate_clicked = False
 
