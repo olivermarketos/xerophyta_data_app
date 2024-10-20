@@ -29,14 +29,6 @@ place_holder_genes= "Xele.ptg000001l.1, Xele.ptg000001l.116,Xele.ptg000001l.16"
 #Functions 
 ###############################
 
-@st.cache_data
-def show_raw_data(df, genes):
-   
-    filtered_df = df[df['gene_name'].isin(genes)]
-    st.subheader("Raw Data")
-    st.write(
-        filtered_df
-    )
 
 
 def instruction_page():
@@ -67,7 +59,7 @@ def instruction_page():
         """
     )
 
-@st.cache
+@st.cache_data
 def retreive_gene_info():
     database = db.DB()
 
@@ -111,19 +103,9 @@ elif st.session_state.gene_selection =="Arabidopsis ortholog":
 
 
 
-
-
-
 if(st.sidebar.button(label="Generate")):
     st.session_state.generate_clicked = True
     retreive_gene_info()
-
-
-
-
-###############################
-# End Side Bar
-###############################
-
-
+else:
+    instruction_page()
 

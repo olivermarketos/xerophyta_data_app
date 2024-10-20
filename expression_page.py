@@ -176,7 +176,6 @@ st.sidebar.radio(
     key="plot_type")
 
 
-st.write(st.session_state)
 
 # Sidebar button to trigger generation
 if st.sidebar.button(label="Generate"):
