@@ -237,6 +237,16 @@ class DB():
             ).all()
         return query
     
+    def get_gene_annotation_data(self, gene_list):
+        
+        # ensure its a list
+        if isinstance(gene_list, str):
+            gene_list = [gene_list]
+        
+        query = self.session.query(models.Gene_info).filter(models.Gene_info.gene_name.in_(gene_list)).all()
+
+        return query
+        
     def get_uniprot_id(self):
         query = self.session.query(models.Gene_info.Hit_ACC).all()
         return query

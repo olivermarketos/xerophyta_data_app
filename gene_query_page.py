@@ -39,41 +39,43 @@ def instruction_page():
     # Detailed steps and descriptions
     st.markdown(
         """
-        #### **Step 1: Select your dataset to analyse**
-
-        - **Time-series expression:** Explore dynamic expression profiles ...
-        
-        #### **Step 2: Select your genes of interest**
-
-        - **Lettuce GeneID:** Input Lettuce gene ID(s).
-        - **Orthologues of Arabidopsis Genes:** Provide an Arabidopsis gene ID ...
-        - **Genes with GO-term:** Enter a GO term ...
-        - **Genes with Protein Domain:** Search genes ...
-
-        #### **Step 3: Dataset-specific options**
-
-        - Dataset-specific gene selection criteria ...
-        - Plot customisation options ...
-
-        #### **Step 4: Click 'Generate'**
+        #### Retrieve gene annotation data from X. elegans genes by querying directly with _X. elegans_ gene IDs or by _Arabidopsis_ homologues.
         """
     )
 
-@st.cache_data
 def retreive_gene_info():
     database = db.DB()
 
     input_genes = re.split(r'[\s,]+', st.session_state.input_genes.strip())
     
-    if st.session_state.gene_input_type == "Gene_ID":
-        input_genes = database.get_gene_from_arab_homolog(input_genes)
-        input_genes = [x[0] for x in input_genes]
-    
-    elif st.session_state.gene_input_type == "Arab_homolog":
+    if st.session_state.gene_input_type == "Arab_homolog":
         matches = database.match_homologue_to_Xe_gene(input_genes)
+        input_genes = matches["X. elegans gene"].to_list()
+        st.markdown(
+        """
+        #### Retreived data based on _Arabidopsis_ homologues.
+        Table of queries and associated homologues. Empty rows indicate that no exact match to the provided _At_ gene name  was found.
+        """)
+
         st.dataframe(matches, use_container_width=True)
 
+    query = database.get_gene_annotation_data(input_genes)
 
+    data = [row.__dict__ for row in query]
+    # Remove SQLAlchemy internal state
+    for item in data:
+        item.pop('_sa_instance_state', None)
+
+    # Convert to a DataFrame
+    if data:
+        df = pd.DataFrame(data)
+        df = df[['gene_name',
+                'sequence_description',
+                'nt_sequence',
+                'Alignment_length',
+                'blast_min_e_value',  'Hit_ACC', 'Bit_Score', 'Positives', 'Similarity' ]  ] 
+        st.dataframe(df)
+        print(df.columns.tolist())
 
 if 'generate_clicked' not in st.session_state:
     st.session_state.generate_clicked = False
