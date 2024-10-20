@@ -48,7 +48,16 @@ def retreive_gene_info():
 
     input_genes = re.split(r'[\s,]+', st.session_state.input_genes.strip())
     
-    if st.session_state.gene_input_type == "Arab_homolog":
+    if st.session_state.gene_input_type == "Gene_ID":
+        st.markdown(
+        """
+        #### Retreived data from  _X. elegans_ gene ID query.
+        Empty rows indicate that the gene <had no match from B2Go?>>.
+
+        Information can be downloaded with the button on the top right of the table.
+        """)
+
+    elif st.session_state.gene_input_type == "Arab_homolog":
         matches = database.match_homologue_to_Xe_gene(input_genes)
         input_genes = matches["X. elegans gene"].to_list()
         st.markdown(
@@ -96,7 +105,7 @@ st.sidebar.radio(
 
 
 if st.session_state.gene_selection =="Xerophyta GeneID":
-    st.sidebar.text_input("Enter Xerophyta GeneIDs separated by  a comma.",place_holder_genes, key="input_genes")
+    st.sidebar.text_area("Enter Xerophyta GeneIDs separated by  a comma.",place_holder_genes, key="input_genes")
     st.session_state.gene_input_type = "Gene_ID"
 
 elif st.session_state.gene_selection =="Arabidopsis ortholog":
@@ -110,4 +119,10 @@ if(st.sidebar.button(label="Generate")):
     retreive_gene_info()
 else:
     instruction_page()
+
+
+
+st.divider()
+
+st.caption("For any issues or inquiries, please contact us at olivermarketos@gmail.com.")
 

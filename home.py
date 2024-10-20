@@ -10,3 +10,9 @@ st.markdown(
         unsafe_allow_html=True
     )
 # st.image("images/seedling.jpg")
+
+
+st.divider()
+
+st.caption("For any issues or inquiries, please contact us at olivermarketos@gmail.com.")
+
