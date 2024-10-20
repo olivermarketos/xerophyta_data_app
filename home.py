@@ -9,4 +9,4 @@ st.markdown(
         """,
         unsafe_allow_html=True
     )
-st.image("images/seedling.jpg")
+# st.image("images/seedling.jpg")

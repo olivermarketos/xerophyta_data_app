@@ -29,14 +29,10 @@ place_holder_genes= "Xele.ptg000001l.1, Xele.ptg000001l.116,Xele.ptg000001l.16"
 ###############################
 
 @st.cache_data
-def show_raw_data(df, genes):
-   
-    filtered_df = df[df['gene_name'].isin(genes)]
-    st.subheader("Raw Data")
-    st.write(
-        filtered_df
-    )
+def show_raw_data(data):
+    df = data[["id",  "gene_name", "log2_expression", "normalised_expression", "treatment", "treatment_time", "experiment_time",  "replicate"]]
 
+    st.dataframe(df)
 
 def instruction_page():
 
@@ -150,13 +146,12 @@ st.sidebar.radio(
 
 
 if st.session_state.gene_selection =="Xerophyta GeneID":
-    st.sidebar.text_input("Enter Xerophyta GeneIDs separated by  a comma.",place_holder_genes, key="input_genes")
+    st.sidebar.text_area("Enter Xerophyta GeneIDs separated by  a comma, space or each entry on new line.",place_holder_genes, key="input_genes")
     st.session_state.gene_input_type = "Gene_ID"
 
 elif st.session_state.gene_selection =="Arabidopsis ortholog":
-    st.sidebar.text_input("Enter Arabidopsis orthologues separated by  a comma.","At4g12010, OXA1", key="input_genes")
+    st.sidebar.text_area("Enter Arabidopsis orthologues separated by a comma, space or each entry on new line.","At4g12010, OXA1", key="input_genes")
     st.session_state.gene_input_type = "Arab_homolog"
-
 
 elif st.session_state.gene_selection =="Genes with GO term":
     st.sidebar.text_input("Enter GO term description or ID separated by  a comma.","jasmonic acid mediated signaling pathway", key="input_genes")
@@ -181,17 +176,28 @@ st.sidebar.radio(
     key="plot_type")
 
 
+st.write(st.session_state)
 
-if(st.sidebar.button(label="Generate")):
-    st.session_state.generate_clicked = True
+# Sidebar button to trigger generation
+if st.sidebar.button(label="Generate"):
     if st.session_state.input_genes:
+        st.session_state.generate_clicked = True
         data = retreive_expression_data()
-        generate_plots(data)
+        st.session_state.data = data  # Store the data in session state
     else:
         st.write("Please enter gene names")
 
+# Check if the generate button was clicked
+if st.session_state.generate_clicked:
+    data = st.session_state.get('data')  # Retrieve the stored data
+    generate_plots(data)  # Display the plots
+
+    # Option to show raw data
+    show_raw_data_checkbox = st.checkbox("Show raw data", key="show_raw_data")
+    if show_raw_data_checkbox:
+        show_raw_data(data)
 else:
-    instruction_page()
+    instruction_page()  # Display the instruction page if generate button isn't clicked
 
 
 ###############################

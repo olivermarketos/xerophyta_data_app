@@ -67,6 +67,7 @@ def instruction_page():
         """
     )
 
+@st.cache
 def retreive_gene_info():
     database = db.DB()
 
