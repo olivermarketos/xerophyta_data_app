@@ -39,7 +39,7 @@ def instruction_page():
     # Detailed steps and descriptions
     st.markdown(
         """
-        #### Retrieve gene annotation data from X. elegans genes by querying directly with _X. elegans_ gene IDs or by _Arabidopsis_ homologues.
+        #### Retrieve gene annotation data from _X. elegan_ genes by directly querying  _X. elegans_ gene IDs or by _Arabidopsis_ homologues.
         """
     )
 

@@ -62,11 +62,18 @@ def instruction_page():
         """
     )
 
+def match_genes(input_genes):
+    
+    database = db.DB()
+    return  database.match_homologue_to_Xe_gene(input_genes)
+
+
 def retreive_expression_data():
     database = db.DB()
     input_genes = [item.strip() for item in st.session_state.input_genes.split(',')]
     
     if st.session_state.gene_input_type == "Arab_homolog":
+        
         input_genes = database.get_gene_from_arab_homolog(input_genes)
         input_genes = [x[0] for x in input_genes]
 
@@ -150,7 +157,7 @@ if st.session_state.gene_selection =="Xerophyta GeneID":
     st.session_state.gene_input_type = "Gene_ID"
 
 elif st.session_state.gene_selection =="Arabidopsis ortholog":
-    st.sidebar.text_area("Enter Arabidopsis orthologues separated by a comma, space or each entry on new line.","At4g12010, OXA1", key="input_genes")
+    st.sidebar.text_area("Enter Arabidopsis orthologues separated by a comma, space or each entry on new line.","At4g32010, OXA1", key="input_genes")
     st.session_state.gene_input_type = "Arab_homolog"
 
 elif st.session_state.gene_selection =="Genes with GO term":
@@ -179,22 +186,47 @@ st.sidebar.radio(
 
 # Sidebar button to trigger generation
 if st.sidebar.button(label="Generate"):
+
     if st.session_state.input_genes:
+
+        input_genes = [item.strip() for item in st.session_state.input_genes.split(',')]
+
         st.session_state.generate_clicked = True
+
+        if st.session_state.gene_input_type == "Arab_homolog":
+
+            matches = match_genes(input_genes)
+            st.session_state.matches = matches
+
         data = retreive_expression_data()
         st.session_state.data = data  # Store the data in session state
-    else:
-        st.write("Please enter gene names")
+   
 
 # Check if the generate button was clicked
 if st.session_state.generate_clicked:
     data = st.session_state.get('data')  # Retrieve the stored data
-    generate_plots(data)  # Display the plots
+    if st.session_state.gene_input_type == "Arab_homolog": 
+        st.markdown(
+        """
+        #### Retreived data based on _Arabidopsis_ homologues.
+        Table of queries and associated homologues. Empty rows indicate that no exact match to the provided _At_ gene name  was found.
+        """)
+        matches = st.session_state.get('matches') 
+        st.dataframe(matches, use_container_width=True)
 
-    # Option to show raw data
-    show_raw_data_checkbox = st.checkbox("Show raw data", key="show_raw_data")
-    if show_raw_data_checkbox:
-        show_raw_data(data)
+
+    if not data.empty:
+
+        generate_plots(data)  # Display the plots
+
+        # Option to show raw data
+        show_raw_data_checkbox = st.checkbox("Show raw data", key="show_raw_data")
+        if show_raw_data_checkbox:
+            show_raw_data(data)
+    else:
+        st.markdown("""
+                    No matches found. Please check the spelling of the gene names or ensure you're using the correct format.
+                    """)
 else:
     instruction_page()  # Display the instruction page if generate button isn't clicked
 
