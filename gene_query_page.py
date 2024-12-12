@@ -124,5 +124,5 @@ else:
 
 st.divider()
 
-st.caption("For any issues or inquiries, please contact us at olivermarketos@gmail.com.")
+st.caption("To report a bug or suggest a feature, please contact olivermarketos@gmail.com.")
 
