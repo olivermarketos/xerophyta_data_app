@@ -9,7 +9,7 @@ st.markdown(
         """,
         unsafe_allow_html=True
     )
-st.image("all_data/all_plants.png")
+st.image("all_plants.png")
 
 
 st.divider()
