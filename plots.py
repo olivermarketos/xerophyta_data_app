@@ -1,6 +1,14 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+mpl.rcParams['font.size'] = 14  # increases the base font size
+mpl.rcParams['axes.labelsize'] = 16  # label font size
+mpl.rcParams['axes.titlesize'] = 18  # title font size
+mpl.rcParams['xtick.labelsize'] = 14
+mpl.rcParams['ytick.labelsize'] = 14
+
 
 
 def test_multi_panel_gene_expression(df):
@@ -57,16 +65,6 @@ def test_multi_panel_gene_expression(df):
 
    
 
-    
-    # hide the spines between ax and ax2
-   
-    # This looks pretty good, and was fairly painless, but you can get that
-    # cut-out diagonal lines look with just a bit more work. The important
-    # thing to know here is that in axes coordinates, which are always
-    # between 0-1, spine endpoints are at these locations (0, 0), (0, 1),
-    # (1, 0), and (1, 1).  Thus, we just need to put the diagonals in the
-    # appropriate corners of each of our axes, and so long as we use the
-    # right transform and disable clipping.
 
 def multi_panel_gene_expression(df, expression_values):
    
@@ -129,13 +127,14 @@ def single_panel_gene_expression(df, expression_values):
 
         # Add labels and title
         ax.set_xlabel('Treatment Time',)
-        ax.set_ylabel(f'{expression_values}')
+        ax.set_ylabel(f'{expression_values.split("_")[0]} expression')
         ax.set_title(f"Expression of Genes under {treatment}hydration")
 
         ax.legend()
         if treatment == "Re":
             # Add legend
-            ax.get_yaxis().set_visible(False)
+            pass 
+            # ax.get_yaxis().set_visible(False)
 
         # Append the figure to the list 
         figures.append(fig)

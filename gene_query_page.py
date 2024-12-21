@@ -52,7 +52,7 @@ def retreive_gene_info():
         st.markdown(
         """
         #### Retreived data from  _X. elegans_ gene ID query.
-        Empty rows indicate that the gene <had no match from B2Go?>>.
+        Empty rows indicate that the gene [had no match from B2Go? or better phrase?].
 
         Information can be downloaded with the button on the top right of the table.
         """)
@@ -117,10 +117,12 @@ elif st.session_state.gene_selection =="Arabidopsis ortholog":
 if(st.sidebar.button(label="Generate")):
     st.session_state.generate_clicked = True
     retreive_gene_info()
+
 else:
     instruction_page()
 
 
+st.button("Download FASTA file for all queried genes")
 
 st.divider()
 
