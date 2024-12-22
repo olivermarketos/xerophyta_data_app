@@ -14,7 +14,7 @@ Association table for many to many relationship between annotations and GO ID te
 annotations_go = Table(
     'annotations_go', Base.metadata,
     Column('annotation_id', Integer, ForeignKey('annotations.id'), primary_key=True),
-    Column('go_id', Integer, ForeignKey('go.id'), primary_key=True)
+    Column('go_id', Integer, ForeignKey('GO.id'), primary_key=True)
 )
 
 '''
@@ -60,8 +60,8 @@ class Gene(Base):
     coding_sequence = Column(Text, nullable=True)
 
     species = relationship("Species", back_populates="genes")
-    annotations = relationship("Annotation", back_populates="genes")
-    homologues = relationship('ArabidopsisHomologue',
+    annotations = relationship("Annotation", back_populates="gene")
+    arabidopsis_homologues = relationship('ArabidopsisHomologue',
                               secondary=gene_homologue_association,
                             back_populates='genes')
 
