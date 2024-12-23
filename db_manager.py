@@ -27,6 +27,9 @@ from Bio import SeqIO
 DATABASE_NAME = "all_xerophyta_species_db.sqlite"
 
 
+####################
+# Functions used for creating and populating the current database "all_xerophyta_species_db.sqlite""
+####################
 def create_new_db():
     """
     Deletes and recreates the SQLITE database. Is required when the model structure changes
@@ -45,37 +48,21 @@ def create_new_db():
 
     print("DONE")
 
-def add_rna_seq():
-    """
-    Populates the database with dummy user data from an excel file
-    """
-    database = db.DB()
-    data = pd.read_csv("data/Xe_seedlings_normalised_counts_tidy.csv")
-    data['id'] = data["id"]+'_'+data['gene_name']
-
-    database.batch_create_or_update(models.Gene_expressions, data.to_dict("records"), "id")
-
-def add_gene_names():
-    database = db.DB()
-    data = pd.read_csv("data/Xe_seedlings_normalised_counts_tidy.csv")
-    gene_names = pd.unique((data["gene_name"]))
-
-    records = [{"gene_name": gene_name} for gene_name in gene_names]
-    database.batch_create_or_update(models.Gene_info, records, "gene_name")
-
 def add_gene_sequence_from_fasta(filename, species_id):
     database = db.DB()
     species_name = database.session.query(models.Species).filter_by(id=species_id).first().name
-    
+    print(f"Adding gene sequences for {species_name} from {filename}")
     with open(filename, "r") as f:
         records = [{  "gene_name": seq_record.id, 
                       "species_id": species_id,
                       "coding_sequence": str(seq_record.seq)} 
                       for seq_record in SeqIO.parse(f, "fasta")]
     database.create_or_update(models.Gene, records, "gene_name")
+    print("Done")
 
 def parse_annotations(filename):
     df = pd.read_csv(filename)
+
      # Split columns with lists (GO IDs, GO Names, etc.)
     df["GO IDs"] = df["GO IDs"].str.split("; ")
     df["GO Names"] = df["GO Names"].str.split("; ")
@@ -86,10 +73,10 @@ def parse_annotations(filename):
 
     df.to_csv("output.csv", index=False)
 
-
     return df 
 
 def map_genes_to_ids(species_id):
+    # used for retrieving associated gene ids in the database from gene names (eg gene name Xe10001.1 is gene ID 1 in database)
     database = db.DB()
     gene_dict = {}
     genes = database.session.query(models.Gene).filter_by(species_id=species_id).all()
@@ -110,12 +97,14 @@ def add_gene_annotations(filename, species_id):
         if not gene_id:
             print(f"Gene {row['SeqName']} not found in database")
             continue
+
         annotation_data = {
             "gene_id": gene_id,
             "description": row["Description"],
             "e_value": row["e-Value"],
         }
         # populate the annotation table
+        # TODO this is slow, consider batching
         annotation_instance = database.create_or_update(models.Annotation, [annotation_data], lookup_field= "gene_id")
 
         go_terms = zip(row["GO IDs"], row["GO Names"])
@@ -152,46 +141,45 @@ def add_gene_annotations(filename, species_id):
     # Commit all changes at the end
     database.session.commit()
 
-
-def main_logic(species_name, fasta_file, annotation_file, homologue_file):
+def main(species_name, fasta_file, annotation_file, homologue_file):
     database = db.DB()
-    species = database.add_species(species_name)
+    species = database.add_species(species_name) # add species to database
     species_id = species.id
-    add_gene_sequence_from_fasta(fasta_file, species_id)
-    add_gene_annotations( annotation_file, species_id)
+    add_gene_sequence_from_fasta(fasta_file, species_id) # add gene sequences to database from fasta file
+    add_gene_annotations( annotation_file, species_id) # add gene annotations to database
 
-def add_annotation_data():
-    database = db.DB()
-    # df = pd.read_csv("data/20240918_ALL_topblast_blastx.csv")
-    df = pd.read_csv("data/20240918_Arabidopsis_topblast_blastx.csv")
-    df = df.rename(columns={'Sequence name':'gene_name',
-                            'Sequence desc.':'sequence_description',
-                            'Hit desc.':'Hit_desc',
-                            'Hit ACC':'Hit_ACC',
-                            'E-Value':'blast_min_e_value',
-                            'Bit-Score':'Bit_Score',
-                            'Alignment length':'Alignment_length',
-                            })
-    df = df.drop('Sequence length', axis=1)
-    print(df.head())
+if __name__ == "__main__":
+    # replace  the following with the appropriate file paths and values
+    species_name = "X. schlechteri"
+    fasta_file = "all_data/Xschlechteri_Nov2024/Xsch_CDS_annot150424.fasta"
+    annotation_file = "all_data/Xschlechteri_Nov2024/20241108_Xschlechteri_annotation_23009_export_table_Oliver.csv"
+    homologue_file = "data/uniprot/arab_idmapping_2024_09_22.csv"
+    main(species_name, fasta_file, annotation_file, homologue_file)
+####################
+# Older functons used for previous versions of the database
+####################
 
-    database.batch_create_or_update(models.Gene_info, df.to_dict("records"), "gene_name")
 
-def get_expression():
+def add_rna_seq():
     """
-    Fetches all expression values from the database based on a gene name
+    Populates the database with dummy user data from an excel file
     """
-    gene_name = input("Gene name:")
-
     database = db.DB()
-    time = []
-    treatment_time = []
-    print()
-    for i, value in enumerate(database.get_expression_by_gene_name(gene_name)):
-        time.append(value.experiment_time)
-        treatment_time.append(value.treatment_time)
-    print(time)
-    print(treatment_time)
+    data = pd.read_csv("data/Xe_seedlings_normalised_counts_tidy.csv")
+    data['id'] = data["id"]+'_'+data['gene_name']
+
+    database.batch_create_or_update(models.Gene_expressions, data.to_dict("records"), "id")
+
+def add_gene_names():
+    database = db.DB()
+    data = pd.read_csv("data/Xe_seedlings_normalised_counts_tidy.csv")
+    gene_names = pd.unique((data["gene_name"]))
+
+    records = [{"gene_name": gene_name} for gene_name in gene_names]
+    database.batch_create_or_update(models.Gene_info, records, "gene_name")
+
+
+
 
 def add_at_homologues():
 
@@ -247,17 +235,9 @@ def extract_arabidopsis_locus(gene_name):
 
         
 
-def init_db():
-    create_new_db()
-    add_gene_nuc_seq()
-    # add_gene_names()
-    add_rna_seq()
+    
 
-species_name = "X. schlechteri"
-fasta_file = "all_data/Xschlechteri_Nov2024/Xsch_CDS_annot150424.fasta"
-annotation_file = "all_data/Xschlechteri_Nov2024/20241108_Xschlechteri_annotation_23009_export_table_Oliver.csv"
-homologue_file = "data/uniprot/arab_idmapping_2024_09_22.csv"
-main_logic(species_name, fasta_file, annotation_file, homologue_file)
+
 # if __name__ == "__main__":
 #     parser = argparse.ArgumentParser()
 
