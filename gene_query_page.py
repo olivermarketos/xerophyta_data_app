@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
-
+from datetime import datetime 
 import db as db  # Your custom db module
 from models import (
     Base, Species, Gene, Annotation, GO,
@@ -137,10 +137,12 @@ def main():
 
         # Download button
         csv_data = df_filtered.to_csv(index=False)
+        timestamp_str = datetime.now().strftime("%Y%m%d-%H%M%S")
+        file_name = f"Xerophyta_gene_query_results_{timestamp_str}.csv"
         st.download_button(
             label="Download Results as CSV",
             data=csv_data,
-            file_name="xerophyta_search_results.csv",
+            file_name=file_name,
             mime="text/csv"
         )
 
@@ -227,8 +229,6 @@ def combine_homologues_common(homologues):
 def instruction_page():
 
     # Welcome and brief introduction
-    
-
     # Detailed steps and descriptions
     st.markdown(
         """
