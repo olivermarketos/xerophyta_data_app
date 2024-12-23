@@ -135,16 +135,58 @@ def main():
         st.write(f"Found {len(results)} gene(s).")
         st.dataframe(df_filtered, use_container_width=True)
 
-        # Download button
+        #-------------------------
+        # DOWNLOAD BUTTONS
+        #-------------------------
+        col1, col2 = st.columns(2)
+        
+        # Download gene data button
         csv_data = df_filtered.to_csv(index=False)
         timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         file_name = f"Xerophyta_gene_query_results_{timestamp_str}.csv"
-        st.download_button(
-            label="Download Results as CSV",
-            data=csv_data,
-            file_name=file_name,
-            mime="text/csv"
-        )
+        
+        with col1:
+            st.download_button(
+                label="Download Results as CSV",
+                data=csv_data,
+                file_name=file_name,
+                mime="text/csv"
+            )
+
+        # Download FASTA button
+        fasta_entries = []
+        for g in results:
+            # Let’s assume each Gene has .coding_sequence
+            seq = g.coding_sequence or ""
+            # We'll use the first annotation's description if it exists.
+            # If your real models have multiple annotations, adapt the logic below:
+            
+            # TODO add the descripton to the file name, or add the Arabidopsis homologue
+            # desc = g.annotation_description or "No Description"
+
+            # FASTA header: >GeneName description
+            header = f">{g.gene_name}"
+
+            # Build the FASTA entry (header + sequence)
+            fasta_entries.append(header)
+            fasta_entries.append(seq)  # on the next line
+
+        # Join everything with newlines
+        fasta_str = "\n".join(fasta_entries)
+
+        
+        timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        fasta_filename = f"Xerophyta_genes_{timestamp_str}.fasta"
+
+        with col2:
+            st.download_button(
+                label="Download FASTA",
+                data=fasta_str,
+                file_name=fasta_filename,
+                mime="text/plain",  # or "text/fasta"
+            )
+
+
 
     # Cleanup
     session.close()
