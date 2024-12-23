@@ -180,7 +180,7 @@ def main():
 
         with col2:
             st.download_button(
-                label="Download FASTA",
+                label="Download FASTA with coding sequences",
                 data=fasta_str,
                 file_name=fasta_filename,
                 mime="text/plain",  # or "text/fasta"
