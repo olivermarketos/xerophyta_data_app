@@ -1,6 +1,6 @@
 [theme]
-primaryColor = "#20C997"          # Vibrant Teal
-backgroundColor = "#F8F9FA"       # Soft White
-secondaryBackgroundColor = "#E9ECEF"  # Light Gray
-textColor = "#343A40"             # Dark Charcoal
-font = "sans serif"               # Use a modern, clean sans-serif font
+primaryColor="#738C59"
+backgroundColor="#FAF5E4"
+secondaryBackgroundColor="#F0EAD2"
+textColor="#2F2F2F"
+font="sans serif"
