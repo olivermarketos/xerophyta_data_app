@@ -28,7 +28,7 @@ DATABASE_NAME = "all_xerophyta_species_db.sqlite"
 
 
 ####################
-# Functions usef for creating and populating the current database "all_xerophyta_species_db.sqlite""
+# Functions used for creating and populating the current database "all_xerophyta_species_db.sqlite""
 ####################
 def create_new_db():
     """
@@ -179,38 +179,7 @@ def add_gene_names():
     database.batch_create_or_update(models.Gene_info, records, "gene_name")
 
 
-def add_annotation_data():
-    database = db.DB()
-    # df = pd.read_csv("data/20240918_ALL_topblast_blastx.csv")
-    df = pd.read_csv("data/20240918_Arabidopsis_topblast_blastx.csv")
-    df = df.rename(columns={'Sequence name':'gene_name',
-                            'Sequence desc.':'sequence_description',
-                            'Hit desc.':'Hit_desc',
-                            'Hit ACC':'Hit_ACC',
-                            'E-Value':'blast_min_e_value',
-                            'Bit-Score':'Bit_Score',
-                            'Alignment length':'Alignment_length',
-                            })
-    df = df.drop('Sequence length', axis=1)
-    print(df.head())
 
-    database.batch_create_or_update(models.Gene_info, df.to_dict("records"), "gene_name")
-
-def get_expression():
-    """
-    Fetches all expression values from the database based on a gene name
-    """
-    gene_name = input("Gene name:")
-
-    database = db.DB()
-    time = []
-    treatment_time = []
-    print()
-    for i, value in enumerate(database.get_expression_by_gene_name(gene_name)):
-        time.append(value.experiment_time)
-        treatment_time.append(value.treatment_time)
-    print(time)
-    print(treatment_time)
 
 def add_at_homologues():
 

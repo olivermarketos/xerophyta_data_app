@@ -39,7 +39,13 @@ def instruction_page():
     # Detailed steps and descriptions
     st.markdown(
         """
-        #### Retrieve gene annotation data from _X. elegan_ genes by directly querying  _X. elegans_ gene IDs or by _Arabidopsis_ homologues.
+        #### Retrieve gene annotation information.
+
+        - The panel on the left provides various means to query the database for gene information.
+        - You can query the database using the following methods:
+            1. Filter by Xeropyhta species
+            2. Query gene ID or arabidopsis homologue (common name or locus ID)
+            3. Query GO ID or GO name, Enzyme code, or InterPro ID
         """
     )
 
