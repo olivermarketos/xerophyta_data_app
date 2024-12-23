@@ -137,7 +137,7 @@ def main():
 
         # Download button
         csv_data = df_filtered.to_csv(index=False)
-        timestamp_str = datetime.now().strftime("%Y%m%d-%H%M%S")
+        timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         file_name = f"Xerophyta_gene_query_results_{timestamp_str}.csv"
         st.download_button(
             label="Download Results as CSV",
