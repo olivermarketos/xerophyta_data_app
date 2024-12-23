@@ -90,6 +90,7 @@ def main():
             query = query.filter(
                 or_(*[Gene.gene_name.ilike(f"{g}") for g in xero_genes])
             )
+ 
 
         # (C) Filter by Arabidopsis gene/locus
         if arab_genes:
