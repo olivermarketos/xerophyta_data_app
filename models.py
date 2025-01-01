@@ -51,6 +51,7 @@ class Species(Base):
     name = Column(String, unique=True, nullable=False)
 
     genes = relationship("Gene", back_populates="species")
+    gene_expressions = relationship("Gene_expressions", back_populates="species")
 
 class Gene(Base):
     __tablename__ = "genes"
@@ -64,6 +65,7 @@ class Gene(Base):
     arabidopsis_homologues = relationship('ArabidopsisHomologue',
                               secondary=gene_homologue_association,
                             back_populates='genes')
+    gene_expressions = relationship("Gene_expressions", back_populates="genes")
 
 class Annotation(Base):
     __tablename__ = "annotations"
@@ -130,28 +132,34 @@ class InterPro(Base):
 
     annotations = relationship("Annotation", secondary=annotations_interpro, back_populates="interpro_ids")
 
+class Gene_expressions(Base):
+    __tablename__ = "gene_expressions"
 
-# # class Species(Base):
-# #     __tablename__ = 'species'
-# #     id = Column(Integer, primary_key=True)
-# #     name = Column(String, unique=True, nullable=False)
-# #     common_name = Column(String, nullable=True)
+    id = Column(Integer, primary_key=True)
+    treatment = Column("treatment", String, nullable=False)
+    time = Column("time", Integer, nullable=False)
+    replicate = Column("replicate", Integer, nullable=False)
+    normalised_expression = Column("normalised_expression", Float, nullable=False)
+    log2_expression = Column("log2_expression", Float,nullable=False)
+    meta_data = Column("meta_data", Text, nullable=True)
 
-# #     genes = relationship("Gene_info", back_populates="species")
-# #     expressions = relationship("GeneExpressions", back_populates="species")
+    experiment_id = Column(Integer, ForeignKey("experiments.id"), nullable=False)
+    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
+    gene_id = Column(Integer, ForeignKey("genes.id"), nullable=False)
 
-# class Gene_expressions(Base):
-#     __tablename__ = "gene_expressions"
+    experiment = relationship("Experiments", back_populates="gene_expressions")
+    species = relationship("Species", back_populates="gene_expressions")
+    genes = relationship("Gene", back_populates="gene_expressions")
 
-#     id = Column("id",String, primary_key=True)
-#     gene_name = Column("gene_name", String, ForeignKey('gene_info.gene_name'))
-#     treatment_time = Column("treatment_time", Integer)
-#     experiment_time = Column("experiment_time", Integer)
-#     normalised_expression = Column("normalised_expression", Float)
-#     log2_expression = Column("log2_expression", Float)
-#     species = Column("species", String)
-#     treatment = Column("treatment", String)
-#     replicate = Column("replicate", Integer)
+class Experiments(Base):
+    __tablename__ = "experiments"
+
+    id = Column(Integer, primary_key=True)
+    experiment_name = Column("experiment_name", String)
+    description = Column("description", Text, nullable=True)
+
+    gene_expressions = relationship("Gene_expressions", back_populates="experiment")
+
 
 # class Gene_info(Base):
 #     __tablename__ = 'gene_info'
