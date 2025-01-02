@@ -138,7 +138,7 @@ class Gene_expressions(Base):
     id = Column(Integer, primary_key=True)
     treatment = Column("treatment", String, nullable=False)
     time = Column("time", Integer, nullable=False)
-    replicate = Column("replicate", Integer, nullable=False)
+    replicate = Column("replicate", String, nullable=False)
     normalised_expression = Column("normalised_expression", Float, nullable=False)
     log2_expression = Column("log2_expression", Float,nullable=False)
     meta_data = Column("meta_data", Text, nullable=True)

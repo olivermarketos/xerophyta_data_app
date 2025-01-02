@@ -2,31 +2,57 @@ import pandas as pd
 import numpy as np
 
 
-def tidy_rna_expression(data):
-    data = pd.read_csv(data)
+def transform_to_long(df):
+    '''
+    Data: dataframe contating the gene expression data
+        Expects the header to be in the format:
+            "Species_Treatment_Replicate_Time" 
+            e.g "Xe_De_R2_T03", etc.
+    '''
+    # Parse the header and split it into columns
+    header = df.columns.tolist()
+    parsed_columns = []
 
-    df = pd.DataFrame(data)
-    df.rename(columns={'Unnamed: 0': 'gene_name'}, inplace=True)
-    
-    # Melt the DataFrame to go from wide to long format
-    tidy_df = pd.melt(df, id_vars=['gene_name'], var_name='metadata', value_name='expression')
+    # Expects the header to be in the format "Species_Treatment_Replicate_Time" e.g "Xe_De_R2_T03", etc.
+    for col in header[1:]:  # Skip the first gene column
+        # Extract the species, treatment, replicate, and time
+        parts = col.split("_")
+        
+        species = parts[0]  # e.g., "Xe"
+        if species == "Xe":
+            species = "X. elegans"
+        elif species == "Xs":
+            species = "X. schlechteri"
+        elif species == "Xh":
+            species = "X. humilis"
+        else:
+            raise ValueError(f"Unknown species: {species}. Expected 'Xe', 'Xs', or 'Xh'.")
+        
+        treatment = parts[1]  # e.g., "De" or "Re"
+        replicate = parts[2]  # e.g., "R2", "R3", etc.
+        time = parts[3]  # e.g., "T00", "T03", etc.
+        parsed_columns.append((species, treatment, replicate, time))
 
-    # Extract species, treatment, replicate, and time information from the 'metadata' column
-    tidy_df[['species', 'treatment', 'replicate', 'time']] = tidy_df['metadata'].str.extract(r'(\w+)_([\w]+)_R(\d+)_T(\d+)')
+    # Create a long-form DataFrame for database insertion
+    data = []
+    for index, row in df.iterrows():
+        gene_name = row[0]  # First column is the gene name
+        for col, (species, treatment, replicate, time) in zip(header[1:], parsed_columns):
+            expression = row[col]
+            data.append({
+                "gene_name": gene_name,
+                "species": species,
+                "treatment": treatment,
+                "replicate": replicate,
+                "time": time,
+                "expression": expression
+            })
 
-   
-    # make time an integer
-    tidy_df['time'] = tidy_df['time'].astype(int)
-    tidy_df = tidy_df.sort_values(by=['gene_name'])
+    # Convert to DataFrame
+    long_df = pd.DataFrame(data)
 
-    tidy_df= add_log2(tidy_df)
+    return long_df
 
-    # add column for total experiment time
-    tidy_df['experiment_time'] = tidy_df.apply(calculate_experiment_time, axis=1)
-    
-     # Reorder the columns for better readability
-    tidy_df = tidy_df[['gene_name','time','experiment_time','expression','log2_expression','species', 'treatment', 'replicate', "metadata"]]
-    return tidy_df
  
 def add_log2(df):
     df["log2_expression"] = np.log2(df['expression']+1)
@@ -39,16 +65,6 @@ def calculate_experiment_time(row):
     elif row['treatment'] == 'Re':
         return 24 + time
 
-def test():
-    df = pd.DataFrame(pd.read_csv('data/Xe_seedlings_normalised_counts_tidy.csv'))
-    print(df['experiment_time'].unique())
-
-
-def main():
-    df = tidy_rna_expression("data/Xe_seedlings_20_04_DESeq2_normalised_counts_table.csv")
-    df.to_csv('data/Xe_seedlings_normalised_counts_tidy.csv', index=False)
-
- 
-
-if __name__ == "__main__":
-    main()
+def format_time_points(df):
+    df["time"] = df["time"].str.replace("T", "").astype(int)
+    return df

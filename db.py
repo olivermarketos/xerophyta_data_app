@@ -40,7 +40,7 @@ class DB():
 
 
 
-    def create_or_update(self, model, values, lookup_field):
+    def create_or_update(self, model, values, lookup_fields):
         """
     Generic method to create or update any record in any model and return an instance of that record.
 
@@ -51,10 +51,16 @@ class DB():
         values: a list of dictionaries specifying the values the new record should contain
         lookup_field: the field (or unique column) used to identify whether a record exists (e.g., "gene_name", "sequence_name", etc.)
     """
-        try: 
+        try:
+            instance = None
             for value in values:
                 #query the database using teh lookup field to see if the record exists
-                instance = self.session.query(model).filter_by(**{lookup_field: value[lookup_field]}).first()
+
+                filters = {field: value[field] for field in lookup_fields}
+                query = self.session.query(model).filter_by(**filters)
+                print(f"Filters applied: {filters}")
+                # Check if an instance exists
+                instance = query.first()
 
                 if instance is not None:
                     # print(f"Updating record with {value[lookup_field]}")
@@ -70,6 +76,7 @@ class DB():
             return instance
         except SQLAlchemyError as e:
             self.session.rollback()
+            print(e)
             raise e
 
     def batch_create_or_update(self, model, values, pk):

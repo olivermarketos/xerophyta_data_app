@@ -105,7 +105,7 @@ def add_gene_annotations(filename, species_id):
         }
         # populate the annotation table
         # TODO this is slow, consider batching
-        annotation_instance = database.create_or_update(models.Annotation, [annotation_data], lookup_field= "gene_id")
+        annotation_instance = database.create_or_update(models.Annotation, [annotation_data], lookup_fields= "gene_id")
 
         go_terms = zip(row["GO IDs"], row["GO Names"])
         for go_id, go_name in go_terms:
@@ -114,7 +114,7 @@ def add_gene_annotations(filename, species_id):
                 "go_branch": go_id.split(":")[0],  # Extract branch (P, F, or C)
                 "go_name": go_name
             }
-            go_instance = database.create_or_update(models.GO, [go_data], lookup_field="go_id")
+            go_instance = database.create_or_update(models.GO, [go_data], lookup_fields="go_id")
             if go_instance not in annotation_instance.go_ids:
                 annotation_instance.go_ids.append(go_instance)
 
@@ -125,7 +125,7 @@ def add_gene_annotations(filename, species_id):
                 "enzyme_code": enzyme_code,
                 "enzyme_name": enzyme_name
             }
-            enzyme_instance = database.create_or_update(models.EnzymeCode, [enzyme_data], lookup_field="enzyme_code")
+            enzyme_instance = database.create_or_update(models.EnzymeCode, [enzyme_data], lookup_fields="enzyme_code")
             if enzyme_instance not in annotation_instance.enzyme_codes:
                 annotation_instance.enzyme_codes.append(enzyme_instance)
 
@@ -134,12 +134,53 @@ def add_gene_annotations(filename, species_id):
             interpro_data = {
                 "interpro_id": interpro_id
             }
-            interpro_instance = database.create_or_update(models.InterPro, [interpro_data], lookup_field="interpro_id")
+            interpro_instance = database.create_or_update(models.InterPro, [interpro_data], lookup_fields="interpro_id")
             if interpro_instance not in annotation_instance.interpro_ids:
                 annotation_instance.interpro_ids.append(interpro_instance)
 
     # Commit all changes at the end
     database.session.commit()
+
+def add_experiment(experiment_name, description= None):
+    database = db.DB()
+    experiment = database.create_or_update(models.Experiments, [{"experiment_name": experiment_name, "description": description}], ["experiment_name"])
+    return experiment
+
+def add_rna_seq_data(df, species, experiment_name):
+    database = db.DB()
+    lookup_field = ["gene_id","treatment","time","replicate"]
+
+    species_id = database.session.query(models.Species.id).filter( models.Species.name == species ).scalar()
+    experiment_id = database.session.query(models.Experiments.id).filter( models.Experiments.experiment_name == experiment_name ).scalar()
+    
+    if species_id is None:
+        raise ValueError(f"Species '{species}' not found in the database")
+    if experiment_id is None:
+        raise ValueError(f"Experiment '{experiment_name}' not found in the database")
+    
+    
+    records = []
+    for _, row in df.iterrows():
+        gene_id = database.session.query(models.Gene.id).filter(models.Gene.gene_name == row["gene_name"]).scalar()
+        if gene_id:
+            record = {
+                "treatment": row["treatment"],
+                "time": int(row["time"]),
+                "replicate": (row["replicate"]),
+                "normalised_expression": float(row["normalised_expression"]),
+                "log2_expression": float(row["log2_expression"]),
+                "meta_data": None,
+                "experiment_id": experiment_id,
+                "species_id": species_id,
+                "gene_id": gene_id
+            }
+            records.append(record)
+        else:
+            raise ValueError(f"Gene {row['gene_name']} not found in database")
+    
+    print(f"Adding {len(records)} records to database")
+    database.create_or_update(models.Gene_expressions, records, lookup_fields= lookup_field)
+
 
 def main(species_name, fasta_file, annotation_file, homologue_file):
     database = db.DB()
@@ -150,11 +191,17 @@ def main(species_name, fasta_file, annotation_file, homologue_file):
 
 if __name__ == "__main__":
     # replace  the following with the appropriate file paths and values
-    species_name = "X. schlechteri"
+    species_name = "X. elegans"
+    experiment_name = "xe_seedlings_time_course"
     fasta_file = "all_data/Xschlechteri_Nov2024/Xsch_CDS_annot150424.fasta"
     annotation_file = "all_data/Xschlechteri_Nov2024/20241108_Xschlechteri_annotation_23009_export_table_Oliver.csv"
     homologue_file = "data/uniprot/arab_idmapping_2024_09_22.csv"
-    main(species_name, fasta_file, annotation_file, homologue_file)
+    # main(species_name, fasta_file, annotation_file, homologue_file)
+
+    rna_seq_data = pd.read_csv("all_data/Michael_RNAseq/Xe_seedlings (updated)/Xe_seedlings_DESeq2_normalised_counts_table_tidy_for_db.csv")
+    add_rna_seq_data(rna_seq_data, species_name, experiment_name) # add rna seq data to database
+
+
 ####################
 # Older functons used for previous versions of the database
 ####################
