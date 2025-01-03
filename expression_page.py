@@ -161,13 +161,14 @@ def generate_plots(data):
                 st.pyplot(gene_figures[0])
 
 
-
+def show_missing_genes(genes):
+    if genes:
+        st.warning(f"The following gene(s) are not in the database: {', '.join(genes)}")
 
 def main():
     initialise_session_state()
     setup_sidebar()
 
-    st.session_state
     if st.sidebar.button("Generate"):
         st.session_state.generate_clicked = True
  
@@ -180,14 +181,21 @@ def main():
 
             if gene_selection == "xerophyta":
                 in_database = database.check_if_gene_in_database(input_genes)
-                filtered_genes = [gene for gene, is_in_db in zip(input_genes, in_database) if is_in_db]
-                rna_seq_data = database.get_gene_expression_data(filtered_genes)
+                genes_in_db = []
+                genes_not_in_db = []
+
+                # Single loop to populate both lists
+                for gene, is_in_db in zip(input_genes, in_database):
+                    if is_in_db:
+                        genes_in_db.append(gene)
+                    else:
+                        genes_not_in_db.append(gene)
+
+                rna_seq_data = database.get_gene_expression_data(genes_in_db, st.session_state.experiment)
+                show_missing_genes(genes_not_in_db)
                 generate_plots(rna_seq_data)
 
-                if st.button("Show raw data"):
-                    st.session_state.show_raw_data = True
-
-                if st.session_state.show_raw_data:
+                if st.checkbox("Show raw data"):
                     show_raw_data(rna_seq_data)
 
             elif gene_selection == "arabidopsis":

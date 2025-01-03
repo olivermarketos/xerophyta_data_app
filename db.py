@@ -175,12 +175,13 @@ class DB():
         # Step 6: Commit the transaction
         self.session.commit()
 
-    def get_gene_expression_data(self, gene_list):
+    def get_gene_expression_data(self, gene_list, experiment):
         """
         Query the database to retrieve gene expression data for a list of genes.
 
         Parameters:
             gene_list (list): A list of gene names to query.
+            experiment (str): The name of the experiment to query.
 
         Returns:
             pandas.DataFrame: A DataFrame containing the gene expression data.
@@ -196,7 +197,9 @@ class DB():
                 models.Gene.gene_name
             )
             .join(models.Gene, models.Gene.id == models.Gene_expressions.gene_id)
+            .join(models.Experiments, models.Experiments.id == models.Gene_expressions.experiment_id)
             .filter(models.Gene.gene_name.in_(gene_list))
+            .filter(models.Experiments.experiment_name == experiment)
             .all()
         )
     
@@ -212,7 +215,7 @@ class DB():
 
         # Convert to a DataFrame
         df = pd.DataFrame(data)
-        
+
         return df
 
     def get_gene_from_arab_homolog(self, At_list):
@@ -231,14 +234,43 @@ class DB():
         return result 
     
     def get_species(self):
+        """Retrieve all the species from the database.
+
+        Returns:
+            List[Species]: A list of Species objects.
+        """
         results = self.session.query(models.Species).all()
         return results
     
+    def get_species_by_name(self, species_name):  
+        """Retrieve a species object by its name.
+
+        Args:
+            species_name (str): The name of the species.
+
+        Returns:
+            Species: A Species object
+        """
+        query = self.session.query(models.Species).filter_by(name=species_name).first()
+        return query
+
     def get_experiments(self):
         results = self.session.query(models.Experiments).all()
         
         return results
     
+    def get_experiment_by_name(self, experiment_name):
+        """Get an experiment by its name.
+
+        Args:
+            experiment_name (str): The name of the experiment.
+
+        Returns:
+            Experiments: An Experiments object.
+        """
+        experiment = self.session.query(models.Experiments).filter_by(experiment_name=experiment_name).first()
+        return experiment
+
     def get_experiments_by_species(self, species_name):
         """
         Retrieve all experiments associated with a given species name.
@@ -259,6 +291,30 @@ class DB():
             .all()
         )
         return results
+
+    def link_experiment_to_species(self, experiment_name, species_name):
+        
+        species = self.get_species_by_name(species_name)
+    
+        if not species:
+            print(f"Species '{species_name}' does not exist in the database.")
+            return
+
+        experiment = self.get_experiment_by_name(experiment_name)
+        if not experiment:
+            print(f"Experiment '{experiment_name}' does not exist in the database.")
+            return
+
+        # Step 3: Link the experiment to the species
+        if experiment.species is None:
+            experiment.species = species
+        else:
+            print(f"Experiment '{experiment_name}' is already linked to a species '{experiment.species.name}'.")
+            return
+
+        # Step 4: Commit the changes
+        print(f"Experiment '{experiment_name}' is now linked to species '{species_name}'.")
+        self.session.commit()
 
     def check_if_gene_in_database(self, gene_list):
         """

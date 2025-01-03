@@ -52,6 +52,7 @@ class Species(Base):
 
     genes = relationship("Gene", back_populates="species")
     gene_expressions = relationship("Gene_expressions", back_populates="species")
+    experiment = relationship("Experiments", back_populates="species")
 
 class Gene(Base):
     __tablename__ = "genes"
@@ -157,9 +158,10 @@ class Experiments(Base):
     id = Column(Integer, primary_key=True)
     experiment_name = Column("experiment_name", String)
     description = Column("description", Text, nullable=True)
+    species_id = Column(Integer, ForeignKey("species.id"), nullable=True)  # Foreign key linking to Species
 
     gene_expressions = relationship("Gene_expressions", back_populates="experiment")
-
+    species = relationship("Species", back_populates="experiment")
 
 # class Gene_info(Base):
 #     __tablename__ = 'gene_info'
