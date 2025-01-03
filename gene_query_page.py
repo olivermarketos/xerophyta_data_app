@@ -20,7 +20,7 @@ def main():
     session = database.session
 
     # 1) Species Selection
-    species_list = session.query(Species).all()
+    species_list = database.get_species()
     species_options = ["(Any)"] + [sp.name for sp in species_list]
     selected_species = st.sidebar.selectbox(
         "Select Species (optional):",

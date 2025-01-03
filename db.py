@@ -189,15 +189,30 @@ class DB():
         if isinstance(gene_list, str):
             gene_list = [gene_list]
         
-        query = self.session.query(models.Gene_expressions).filter(models.Gene_expressions.gene_name.in_(gene_list)).all()
-        
-        data = [record.__dict__ for record in query]
+         # Query to join Gene and Gene_expressions and fetch gene_name instead of gene_id
+        query = (
+            self.session.query(
+                models.Gene_expressions,
+                models.Gene.gene_name
+            )
+            .join(models.Gene, models.Gene.id == models.Gene_expressions.gene_id)
+            .filter(models.Gene.gene_name.in_(gene_list))
+            .all()
+        )
+    
+        # Construct a list of dictionaries including gene_name and expression data
+        data = [
+            {**record[0].__dict__, "gene_name": record[1]}
+            for record in query
+        ]
 
         # Remove SQLAlchemy internal keys (_sa_instance_state)
         for row in data:
             row.pop('_sa_instance_state', None)
 
+        # Convert to a DataFrame
         df = pd.DataFrame(data)
+        
         return df
 
     def get_gene_from_arab_homolog(self, At_list):
@@ -214,6 +229,55 @@ class DB():
             .all()
         )
         return result 
+    
+    def get_species(self):
+        results = self.session.query(models.Species).all()
+        return results
+    
+    def get_experiments(self):
+        results = self.session.query(models.Experiments).all()
+        
+        return results
+    
+    def get_experiments_by_species(self, species_name):
+        """
+        Retrieve all experiments associated with a given species name.
+
+        Parameters:
+            species_name (str): The name of the species.
+
+        Returns:
+            List[Experiments]: A list of Experiment objects associated with the species.
+        """
+        # Query experiments associated with the given species
+        results = (
+            self.session.query(models.Experiments)
+            .join(models.Gene_expressions, models.Experiments.id == models.Gene_expressions.experiment_id)
+            .join(models.Species, models.Gene_expressions.species_id == models.Species.id)
+            .filter(models.Species.name == species_name)
+            .distinct()  # To avoid duplicates
+            .all()
+        )
+        return results
+
+    def check_if_gene_in_database(self, gene_list):
+        """
+        Check if a gene is in the database.
+
+        Parameters:
+            gene_list (list): A list of gene names to check.
+
+        Returns:
+            List[str]: A boolean list if gene is in the database.
+        """
+        in_db = []
+        for gene in gene_list:
+            query = self.session.query(models.Gene).filter(models.Gene.gene_name == gene).first()
+            if query:
+                in_db.append(True)
+            else:
+                in_db.append(False)
+        return in_db
     
     def match_homologue_to_Xe_gene(self, At_list):
        

@@ -178,7 +178,7 @@ def add_rna_seq_data(df, species, experiment_name):
         else:
             raise ValueError(f"Gene {row['gene_name']} not found in database")
     
-    print(f"Adding {len(records)} records to database")
+        
     database.create_or_update(models.Gene_expressions, records, lookup_fields= lookup_field)
 
 

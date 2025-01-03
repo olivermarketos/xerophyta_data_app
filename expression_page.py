@@ -5,83 +5,113 @@ import matplotlib.pyplot as plt
 import  db
 import plots
 
-
 st.title('Xerophyta Data Explorer')
 st.divider()
 
-###############################
-# Place holders and tags 
-###############################
+database = db.DB()
+EXPRESSION_PLOT_OPTIONS = ["log2_expression", "normalised_expression"]
+PLOT_DISPLAY_OPTIONS = ["Genes on single plot", "Genes on separate plot"]
+GENE_SELECTION_OPTIONS = {
+    "Xerophyta GeneID": {
+        "placeholder": "Xele.ptg000001l.1, Xele.ptg000001l.116",
+        "key": "Gene_ID",
+        "input_label": "Enter Xerophyta GeneIDs separated by commas, space or newline:"
+    },
+    "Arabidopsis ortholog": {
+        "placeholder": "At4g32010, OXA1",
+        "key": "Arab_homolog",
+        "input_label": "Enter Arabidopsis orthologues separated by commas, space or newline:"
+    },
+    "Genes with GO term": {
+        "key": "GO_term",
+        "placeholder": "jasmonic acid mediated signaling pathway",
+        "input_label": "Enter GO term description or ID separated by commas, space or newline:"
+    }
+}
 
-options_dataset=["X. elegans time-series"]
-# options_gene_selection = ['Xerophyta GeneID', "Arabidopsis ortholog", "Genes with GO term", "Genes with protein domain"]
-options_gene_selection = ['Xerophyta GeneID', "Arabidopsis ortholog"]
-options_deg = ["show all genes"]
-options_plot_type = ["Genes on single plot", "Genes on separate plot"]
-# options_deg = ["show all genes", "Only display DEGS", "Only display up-regulted DEGs", "Only display down-regulated DEGs"]
 
-genes_to_plot = ['Xele.ptg000001l.1', 'Xele.ptg000001l.116','Xele.ptg000001l.16']
-place_holder_genes= "Xele.ptg000001l.1, Xele.ptg000001l.116,Xele.ptg000001l.16"
+def initialise_session_state():
+    if "generate_clicked" not in st.session_state:
+        st.session_state.generate_clicked = False
+    if "input_genes" not in st.session_state:
+        st.session_state.input_genes = ""
+    if "show_raw_data" not in st.session_state:
+        st.session_state.show_raw_data = False
 
+def setup_sidebar():
 
-###############################
-#Functions 
-###############################
+    # Define selection options
+    species = [species.name for species in database.get_species()]
+    selected_species = st.sidebar.radio("Select a species:", species, key="species")
+    
+    experiments = [experiment.experiment_name for experiment in database.get_experiments_by_species(selected_species)]
+    selected_experiment = st.sidebar.radio("Select a dataset:", experiments, key="experiment")
+    
+    selected_gene_selection = st.sidebar.radio("Gene selection method:", list(GENE_SELECTION_OPTIONS.keys()), key="gene_selection")
 
-@st.cache_data
-def show_raw_data(data):
-    df = data[["id",  "gene_name", "log2_expression", "normalised_expression", "treatment", "treatment_time", "experiment_time",  "replicate"]]
+    # Gene input field based on selection
+    for option, config in GENE_SELECTION_OPTIONS.items():
+        if selected_gene_selection == option:
+            st.sidebar.text_area(
+                config["input_label"],
+                placeholder=config["placeholder"],
+                key="input_genes",
+                value = st.session_state.input_genes,
+                on_change=lambda: st.session_state.update({"input_genes": st.session_state.input_genes})  # Update session state on change
+            )
+            st.session_state.gene_input_type = config["key"]
 
-    st.dataframe(df)
-
-def instruction_page():
-
-    # Welcome and brief introduction
+    # Plot options
+    st.sidebar.radio("Expression value to plot:", EXPRESSION_PLOT_OPTIONS, key="expression_values")
+    st.sidebar.radio("Plot display style:", PLOT_DISPLAY_OPTIONS, key="plot_type")
     
 
-    # Detailed steps and descriptions
+def show_instructions():
     st.markdown(
         """
-        #### **Step 1: Select your dataset to analyse**
+        #### **Step 1: Select your species and dataset to analyse**
 
-        - **Time-series expression:** Explore dynamic expression profiles ...
+        - **Time-series expression:** Explore dynamic expression profiles
         
         #### **Step 2: Select your genes of interest**
 
-        - **Lettuce GeneID:** Input Lettuce gene ID(s).
-        - **Orthologues of Arabidopsis Genes:** Provide an Arabidopsis gene ID ...
-        - **Genes with GO-term:** Enter a GO term ...
-        - **Genes with Protein Domain:** Search genes ...
-
-        #### **Step 3: Dataset-specific options**
-
-        - Dataset-specific gene selection criteria ...
-        - Plot customisation options ...
-
-        #### **Step 4: Click 'Generate'**
+        - **Xerophyta GeneID:** Input Xerophyta gene ID(s)
+        - **Orthologues of Arabidopsis Genes:** Provide an Arabidopsis gene ID
+        - **Genes with GO-term:** Enter a GO term
         """
+       
     )
 
-def match_genes(input_genes):
-    
-    database = db.DB()
-    return  database.match_homologue_to_Xe_gene(input_genes)
-
-
-def retreive_expression_data():
-    database = db.DB()
-    input_genes = [item.strip() for item in st.session_state.input_genes.split(',')]
-    
-    if st.session_state.gene_input_type == "Arab_homolog":
-        
-        input_genes = database.get_gene_from_arab_homolog(input_genes)
-        input_genes = [x[0] for x in input_genes]
-
-    data = database.get_gene_expression_data(input_genes)
-    return data
+@st.cache_data
+def show_raw_data(data):
+    df = data[[  "gene_name", "log2_expression", "normalised_expression", "treatment", "time",  "replicate"]]
+    st.dataframe(df)
 
 
 
+def process_input_genes(input_genes):
+    """
+    Splits the user's input (comma, space, newline) into a list of unique, non-empty strings.
+    """
+    if not input_genes.strip():
+        return []
+    # Replace commas/newlines with spaces
+    cleaned = input_genes.replace(",", " ").replace("\n", " ")
+    # Split on whitespace
+    tokens = [t.strip() for t in cleaned.split(" ") if t.strip()]
+    # Return unique tokens
+    return list(set(tokens))
+
+def map_gene_selection():
+    """
+    Maps the gene selection method to the appropriate function.
+    """
+    gene_selection = {
+        "Xerophyta GeneID": "xerophyta",
+        "Arabidopsis ortholog": "arabidopsis",
+        "Genes with GO term": "go_term"
+    }
+    return gene_selection[st.session_state.gene_selection]
 
 def generate_plots(data):
     st.subheader("Plot")
@@ -130,113 +160,64 @@ def generate_plots(data):
                 # If there's only one figure for a gene, show it in full width
                 st.pyplot(gene_figures[0])
 
-###############################
-#Side Bar
-###############################
-
-if 'generate_clicked' not in st.session_state:
-    st.session_state.generate_clicked = False
-
-if 'gene_input_type' not in st.session_state:
-    st.session_state.gene_input_type = "Gene_ID"
-
-st.sidebar.radio(
-    "Select a dataset:",
-    options_dataset, 
-    key="dataset")
-
-
-st.sidebar.radio(
-    "Gene selection method:",
-    options_gene_selection,
-    key="gene_selection")
-
-
-if st.session_state.gene_selection =="Xerophyta GeneID":
-    st.sidebar.text_area("Enter Xerophyta GeneIDs separated by  a comma, space or each entry on new line.",place_holder_genes, key="input_genes")
-    st.session_state.gene_input_type = "Gene_ID"
-
-elif st.session_state.gene_selection =="Arabidopsis ortholog":
-    st.sidebar.text_area("Enter Arabidopsis orthologues separated by a comma, space or each entry on new line.","At4g32010, OXA1", key="input_genes")
-    st.session_state.gene_input_type = "Arab_homolog"
-
-elif st.session_state.gene_selection =="Genes with GO term":
-    st.sidebar.text_input("Enter GO term description or ID separated by  a comma.","jasmonic acid mediated signaling pathway", key="input_genes")
-
-elif st.session_state.gene_selection == "Genes with protein domain":
-    st.sidebar.text_input("Enter protein domains to search for, separated by  a comma.", key="input_genes")
-
-
-# st.sidebar.radio(
-#     "Do you wish to filter gene based on differential expression?",
-#     options_deg,
-#     key="filter_degs")
-
-st.sidebar.radio(
-    "Dp you want to plot log2fc or normalised expression values?",
-    ["log2_expression", "normalised_expression"],
-    key="expression_values")
-
-st.sidebar.radio(
-    "How would you like the expression plots to be displayed?",
-    options_plot_type,
-    key="plot_type")
 
 
 
-# Sidebar button to trigger generation
-if st.sidebar.button(label="Generate"):
+def main():
+    initialise_session_state()
+    setup_sidebar()
 
-    if st.session_state.input_genes:
-
-        input_genes = [item.strip() for item in st.session_state.input_genes.split(',')]
-
+    st.session_state
+    if st.sidebar.button("Generate"):
         st.session_state.generate_clicked = True
+ 
+    if st.session_state.generate_clicked:
+        input_genes = process_input_genes(st.session_state.input_genes)
+        # input_genes = st.session_state.input_genes
+        if input_genes:
 
-        if st.session_state.gene_input_type == "Arab_homolog":
+            gene_selection = map_gene_selection()
 
-            matches = match_genes(input_genes)
-            st.session_state.matches = matches
+            if gene_selection == "xerophyta":
+                in_database = database.check_if_gene_in_database(input_genes)
+                filtered_genes = [gene for gene, is_in_db in zip(input_genes, in_database) if is_in_db]
+                rna_seq_data = database.get_gene_expression_data(filtered_genes)
+                generate_plots(rna_seq_data)
 
-        data = retreive_expression_data()
-        st.session_state.data = data  # Store the data in session state
-   
+                if st.button("Show raw data"):
+                    st.session_state.show_raw_data = True
 
-# Check if the generate button was clicked
-if st.session_state.generate_clicked:
-    data = st.session_state.get('data')  # Retrieve the stored data
-    if st.session_state.gene_input_type == "Arab_homolog": 
-        st.markdown(
-        """
-        #### Retreived data based on _Arabidopsis_ homologues.
-        Table of queries and associated homologues. Empty rows indicate that no exact match to the provided _At_ gene name  was found.
-        """)
-        matches = st.session_state.get('matches') 
-        st.dataframe(matches, use_container_width=True)
+                if st.session_state.show_raw_data:
+                    show_raw_data(rna_seq_data)
+
+            elif gene_selection == "arabidopsis":
+                pass
+
+            elif gene_selection == "go_term":
+                pass
+
+        else:
+            st.markdown("Please enter at least one gene ID")
 
 
-    if not data.empty:
-
-        generate_plots(data)  # Display the plots
-
-        # Option to show raw data
-        show_raw_data_checkbox = st.checkbox("Show raw data", key="show_raw_data")
-        if show_raw_data_checkbox:
-            show_raw_data(data)
     else:
-        st.markdown("""
-                    No matches found. Please check the spelling of the gene names or ensure you're using the correct format.
-                    """)
-else:
-    instruction_page()  # Display the instruction page if generate button isn't clicked
+        show_instructions()
 
 
-###############################
-# End Side Bar
-###############################
-
+main()
 st.divider()
-
 st.caption("To report a bug or suggest a feature, please contact olivermarketos@gmail.com.")
+
+
+
+
+# def match_genes(input_genes):
+    
+#     database = db.DB()
+#     return  database.match_homologue_to_Xe_gene(input_genes)
+
+
+
+
 
 
