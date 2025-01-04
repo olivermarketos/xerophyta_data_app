@@ -192,8 +192,12 @@ def main():
                         genes_not_in_db.append(gene)
 
                 rna_seq_data = database.get_gene_expression_data(genes_in_db, st.session_state.experiment)
+                
                 show_missing_genes(genes_not_in_db)
-                generate_plots(rna_seq_data)
+                if rna_seq_data.empty:
+                    st.warning("No data found for the selected genes.")
+                else:
+                    generate_plots(rna_seq_data)
 
                 if st.checkbox("Show raw data"):
                     show_raw_data(rna_seq_data)
