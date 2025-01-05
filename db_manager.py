@@ -181,6 +181,51 @@ def add_rna_seq_data(df, species, experiment_name):
         
     database.create_or_update(models.Gene_expressions, records, lookup_fields= lookup_field)
 
+def add_DEG_data(file_name, experiment_name):
+    database = db.DB()
+    data = pd.read_csv(file_name)
+    
+    # Ensure columns exist
+    required_columns = ["Genes", "Re_Set", "Re_direction", "De_Set", "De_direction"]
+    if not all(col in data.columns for col in required_columns):
+        raise ValueError(f"CSV is missing one or more required columns: {required_columns}")
+
+    # Fetch the experiment ID
+    experiment = database.get_experiment_by_name(experiment_name)
+    if experiment is None:
+        raise ValueError(f"Experiment '{experiment_name}' not found in the database.")
+    experiment_id = experiment.id
+
+    records = []  
+
+    for _, row in data.iterrows():
+        gene_name = row["Genes"]
+
+        # Fetch the gene ID
+        gene = database.get_gene_by_name(gene_name)
+        if gene is None:
+            print(f"Gene '{gene_name}' not found in the database. Skipping...")
+            continue
+        gene_id = gene.id
+
+        # Prepare record
+        record = {
+            "gene_id": gene_id,
+            "experiment_id": experiment_id,
+            "re_set": row["Re_Set"] if row["Re_Set"] != "None" else None,
+            "re_direction": row["Re_direction"] if row["Re_direction"] != "None" else None,
+            "de_set": row["De_Set"] if row["De_Set"] != "None" else None,
+            "de_direction": row["De_direction"] if row["De_direction"] != "None" else None,
+        }
+        records.append(record)
+
+    # Use the create_or_update function to add or update records
+    if records:
+        database.create_or_update(models.DifferentialExpression, records, lookup_fields=["gene_id", "experiment_id"])
+        print(f"Processed {len(records)} records.")
+    else:
+        print("No records to process.")
+    
 
 def main(species_name, fasta_file, annotation_file, homologue_file):
     database = db.DB()
@@ -198,10 +243,13 @@ if __name__ == "__main__":
     homologue_file = "data/uniprot/arab_idmapping_2024_09_22.csv"
     # main(species_name, fasta_file, annotation_file, homologue_file)
 
-    rna_seq_data = pd.read_csv("all_data/Michael_RNAseq/Xe_seedlings (updated)/Xe_seedlings_DESeq2_normalised_counts_table_tidy_for_db.csv")
-    add_rna_seq_data(rna_seq_data, species_name, experiment_name) # add rna seq data to database
+    # rna_seq_data = pd.read_csv("all_data/Michael_RNAseq/Xe_seedlings (updated)/Xe_seedlings_DESeq2_normalised_counts_table_tidy_for_db.csv")
+    # add_rna_seq_data(rna_seq_data, species_name, experiment_name) # add rna seq data to database
 
+    DEG_data = "all_data/Michael_RNAseq/Xe_seedlings (updated)/All genes with earliest onset of DE with direction.csv"
+    experiment_name = "xe_seedlings_time_course"
 
+    add_DEG_data(DEG_data, experiment_name) # add DEG data to database
 ####################
 # Older functons used for previous versions of the database
 ####################

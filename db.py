@@ -53,7 +53,8 @@ class DB():
     """
         try:
             instance = None
-            for value in values:
+            total = len(values)
+            for idx, value in enumerate(values):
                 #query the database using teh lookup field to see if the record exists
 
                 filters = {field: value[field] for field in lookup_fields}
@@ -72,6 +73,7 @@ class DB():
                     # Create a new record
                     instance = model(**value)
                     self.session.add(instance)
+                print(f"Processed {idx+1}/{total} records")
             self.session.commit()
             return instance
         except SQLAlchemyError as e:
