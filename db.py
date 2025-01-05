@@ -361,57 +361,49 @@ class DB():
                 in_db.append(False)
         return in_db
 
-    def match_homologue_to_Xe_gene(self, At_list):
-       
 
-        # Get the hits from the database
-        hits = self.get_gene_from_arab_homolog(At_list)
+    def get_genes_by_go_term_or_description(self, go_inputs, species_name= None):
+        """
+        Query genes associated with a list of GO names or GO IDs.
 
-        
-        
-        # # Prepare the results DataFrame
-        results = []
-        for hit in hits:
-            xele_gene, at_gene, common_name = hit
-            # Here we assume that 'at_gene' or 'common_name' is one of the original queries
-            if at_gene.lower() in [x.lower() for x in At_list]:
-                query = at_gene
+        Parameters:
+            go_inputs (list of str): GO names or GO IDs to query.
+
+        Returns:
+            List[Gene]: List of Gene objects associated with the GO terms.
+        """
+        # Preprocess each GO term to handle missing prefixes
+        processed_inputs = []
+        for term in go_inputs:
+            if ":" not in term:
+                # Generate possible matches by prepending the valid prefixes
+                processed_inputs.extend([f"P:{term}", f"F:{term}", f"C:{term}"])
             else:
-                query = common_name
+                # Directly add the user-provided term
+                processed_inputs.append(term)
 
-            results.append({
-                'Query': query,  # Add the matching query here for alignment
-                'X. elegans gene': xele_gene,
-                'At_Gene': at_gene,
-                'Common_name': common_name
-            })
-        
-        for gene in At_list:
+        # Build query
+        query = (
+            self.session.query(models.Gene)
+            .join(models.Annotation, models.Annotation.gene_id == models.Gene.id)
+            .join(models.annotations_go, models.annotations_go.c.annotation_id ==models.Annotation.id)
+            .join(models.GO, models.GO.id == models.annotations_go.c.go_id)
+            .filter(
+                or_(
+                    models.GO.go_id.in_(processed_inputs),  # Match any of the possible GO IDs
+                    *[models.GO.go_name.ilike(f"%{term}%") for term in go_inputs]  # Match GO names (case-insensitive)
+                )
+            )
+        )
+        # Add an optional species filter
+        if species_name:
+            query = query.join(models.Species, models.Gene.species_id == models.Species.id).filter(
+            models.Species.name.ilike(f"%{species_name}%")
+        )
 
-                    # Search for the string in all values in each dictionary
-            matches = [item for item in results if any(gene.lower() in str(value).lower() for value in item.values())]
+        return query.all()
 
-            # Check if there are no matches
-            if not matches:
-                results.append({
-                'Query': gene,  # Add the matching query here for alignment
-                'X. elegans gene': '',
-                'At_Gene': '',
-                'Common_name': ''
-            })            
-                
-
-        results_df = pd.DataFrame(results)
-
-
-        return results_df
-
-    def get_gene_from_arab_name(self, At_list):
-        
-        query = self.session.query(models.Gene_info.gene_name, models.Gene_info.At_gene_name).filter(
-            *[models.Gene_info.At_gene_name.like(f'%{gene}%') for gene in At_list]
-            ).all()
-        return query
+    
     
     def get_gene_annotation_data(self, gene_list):
         

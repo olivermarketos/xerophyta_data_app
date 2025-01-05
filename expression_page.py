@@ -35,8 +35,8 @@ GENE_SELECTION_OPTIONS = {
     },
     "Genes with GO term": {
         "key": "GO_term",
-        "placeholder": "jasmonic acid mediated signaling pathway",
-        "input_label": "Enter GO term description or ID separated by commas, space or newline:"
+        "placeholder": "immune system process, leaf senescence, GO:0005515",
+        "input_label": "Enter GO term description or ID (GO:xxx) separated by commas or newline:"
     }
 }
 
@@ -118,6 +118,19 @@ def process_input_genes(input_genes):
     # Return unique tokens
     return list(set(tokens))
 
+def process_go_terms(input_go_terms):
+    """
+    Splits the user's input (comma, newline) into a list of unique, non-empty strings.
+    """
+    if not input_go_terms.strip():
+        return []
+    # Replace commas/newlines with spaces
+    cleaned = input_go_terms.replace("\n", ",")
+    # Split on whitespace
+    tokens = [t.strip() for t in cleaned.split(",") if t.strip()]
+    # Return unique tokens
+    return list(set(tokens))
+
 def map_gene_selection():
     """
     Maps the gene selection method to the appropriate function.
@@ -188,11 +201,13 @@ def main():
         st.session_state.generate_clicked = True
  
     if st.session_state.generate_clicked:
-        input_genes = process_input_genes(st.session_state.input_genes)
+        input_genes = st.session_state.input_genes
         # input_genes = st.session_state.input_genes
         if input_genes:
             gene_selection = map_gene_selection()
+
             if gene_selection == "xerophyta":
+                input_genes = process_input_genes(input_genes)
                 in_database = database.check_if_gene_in_database(input_genes)
                 genes_in_db = []
                 genes_not_in_db = []
@@ -224,12 +239,36 @@ def main():
                 pass
 
             elif gene_selection == "go_term":
-                in_database = database.check_if_go_term_in_database(input_genes)
-                terms_in_db = []
-                terms_not_in_db = []
-                st.write(in_database)
-                st.write(input_genes)
+                input_genes = process_go_terms(st.session_state.input_genes)
+                genes = database.get_genes_by_go_term_or_description(input_genes)
+                if not genes:
+                    st.warning(f"No genes found for GO term: {input_genes}")
+                in_database = database.check_if_gene_in_database(input_genes)
+                genes_in_db = []
+                genes_not_in_db = []
 
+                for gene, is_in_db in zip(input_genes, in_database):
+                    if is_in_db:
+                        genes_in_db.append(gene)
+                    else:
+                        genes_not_in_db.append(gene)
+
+                # Fetch RNA-seq data and apply DEG filtering
+                selected_filter = DEG_FILTER_OPTIONS[st.session_state.filter_deg]
+                rna_seq_data = database.get_gene_expression_data(
+                    genes_in_db, 
+                    st.session_state.experiment, 
+                    filter_deg=selected_filter
+                )
+
+                show_missing_genes(genes_not_in_db)
+                if rna_seq_data.empty:
+                    st.warning("No data found for the selected genes.")
+                else:
+                    generate_plots(rna_seq_data)
+
+                if st.checkbox("Show raw data"):
+                    show_raw_data(rna_seq_data)
 
         else:
             st.markdown("Please enter at least one gene ID")
