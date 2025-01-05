@@ -5,6 +5,7 @@ import pandas as pd
 from sqlalchemy.orm import joinedload
 from sqlalchemy import or_, func
 from sqlalchemy.exc import SQLAlchemyError
+from constants import DEGFilter
 
 
 class DB():
@@ -59,7 +60,6 @@ class DB():
 
                 filters = {field: value[field] for field in lookup_fields}
                 query = self.session.query(model).filter_by(**filters)
-                print(f"Filters applied: {filters}")
                 # Check if an instance exists
                 instance = query.first()
 
@@ -177,63 +177,57 @@ class DB():
         # Step 6: Commit the transaction
         self.session.commit()
 
-    def get_gene_expression_data(self, gene_list, experiment):
+    def get_gene_expression_data(self, gene_names, experiment_name, filter_deg=DEGFilter.SHOW_ALL):
         """
-        Query the database to retrieve gene expression data for a list of genes.
+        Fetches RNA-seq gene expression data for the specified genes and experiment, applying DEG filtering if required.
 
         Parameters:
-            gene_list (list): A list of gene names to query.
-            experiment (str): The name of the experiment to query.
+            gene_names (list): List of gene names.
+            experiment_name (str): Name of the experiment.
+            filter_deg (DEGFilter): DEG filter option (Enum).
 
         Returns:
-            pandas.DataFrame: A DataFrame containing the gene expression data.
+            pd.DataFrame: A DataFrame containing the filtered gene expression data.
         """
-        # Ensure gene_names is a list or tuple
-        if isinstance(gene_list, str):
-            gene_list = [gene_list]
-        
-         # Query to join Gene and Gene_expressions and fetch gene_name instead of gene_id
         query = (
             self.session.query(
-                models.Gene_expressions,
+                models.Gene_expressions.gene_id,
+                models.Gene_expressions.normalised_expression,
+                models.Gene_expressions.log2_expression,
+                models.Gene_expressions.treatment,
+                models.Gene_expressions.time,
+                models.Gene_expressions.replicate,
                 models.Gene.gene_name
             )
-            .join(models.Gene, models.Gene.id == models.Gene_expressions.gene_id)
-            .join(models.Experiments, models.Experiments.id == models.Gene_expressions.experiment_id)
-            .filter(models.Gene.gene_name.in_(gene_list))
-            .filter(models.Experiments.experiment_name == experiment)
-            .all()
+            .join(models.Gene, models.Gene_expressions.gene_id == models.Gene.id)
+            .join(models.Experiments, models.Gene_expressions.experiment_id == models.Experiments.id)
+            .filter(models.Experiments.experiment_name == experiment_name)
+            .filter(models.Gene.gene_name.in_(gene_names))
         )
-    
-        # Construct a list of dictionaries including gene_name and expression data
-        data = [
-            {**record[0].__dict__, "gene_name": record[1]}
-            for record in query
-        ]
 
-        # Remove SQLAlchemy internal keys (_sa_instance_state)
-        for row in data:
-            row.pop('_sa_instance_state', None)
-
-        # Convert to a DataFrame
-        df = pd.DataFrame(data)
-
-        return df
-
-    def get_gene_from_arab_homolog(self, At_list):
-        
-        result =(self.session.query(models.Gene_info.gene_name, models.Arabidopsis_Homologue.at_locus, models.At_Common_Names.name)
-            .join(models.Gene_info.homologues)  # Join Gene_info with Arabidopsis_Homologue using the relationship
-            .join(models.Arabidopsis_Homologue.common_names)  # Join Arabidopsis_Homologue with At_Common_Names
-            .filter(
-                or_(
-                    func.lower(models.Arabidopsis_Homologue.at_locus).in_([x.lower() for x in At_list]),  # Case-insensitive for homologues
-                    func.lower(models.At_Common_Names.name).in_([x.lower() for x in At_list])  # Case-insensitive for common names
-                )
+        # Apply DEG filtering based on the selected option
+        if filter_deg == DEGFilter.SHOW_DEG:
+            query = query.join(models.DifferentialExpression, models.DifferentialExpression.gene_id == models.Gene.id)
+            query = query.filter(
+                (models.DifferentialExpression.re_set.isnot(None)) | (models.DifferentialExpression.de_set.isnot(None))
             )
-            .all()
-        )
-        return result 
+        elif filter_deg == DEGFilter.SHOW_UP:
+            query = query.join(models.DifferentialExpression, models.DifferentialExpression.gene_id == models.Gene.id)
+            query = query.filter(
+                (models.DifferentialExpression.re_direction == "Up-regulated") | (models.DifferentialExpression.de_direction == "Up-regulated")
+            )
+        elif filter_deg == DEGFilter.SHOW_DOWN:
+            query = query.join(models.DifferentialExpression, models.DifferentialExpression.gene_id == models.Gene.id)
+            query = query.filter(
+                (models.DifferentialExpression.re_direction == "Down-regulated") | (models.DifferentialExpression.de_direction == "Down-regulated")
+            )
+
+        # Execute query and return results as a DataFrame
+        result = query.all()
+        columns = ["gene_id", "normalised_expression", "log2_expression", "treatment", "time", "replicate","gene_name"]
+        return pd.DataFrame(result, columns=columns)
+    
+    
     
     
 

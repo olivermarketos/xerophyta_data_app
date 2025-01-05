@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import  db
 import plots
+from constants import DEGFilter
+
+
 
 st.title('Xerophyta Data Explorer')
 st.divider()
@@ -11,6 +14,14 @@ st.divider()
 database = db.DB()
 EXPRESSION_PLOT_OPTIONS = ["log2_expression", "normalised_expression"]
 PLOT_DISPLAY_OPTIONS = ["Genes on single plot", "Genes on separate plot"]
+# Map frontend options to DEGFilter values
+DEG_FILTER_OPTIONS = {
+    "Show all genes": DEGFilter.SHOW_ALL,
+    "Show all differentially expressed genes": DEGFilter.SHOW_DEG,
+    "Show only up-regulated genes": DEGFilter.SHOW_UP,
+    "Show only down-regulated genes": DEGFilter.SHOW_DOWN,
+}
+
 GENE_SELECTION_OPTIONS = {
     "Xerophyta GeneID": {
         "placeholder": "Xele.ptg000001l.1, Xele.ptg000001l.116",
@@ -63,6 +74,11 @@ def setup_sidebar():
 
     # Plot options
     st.sidebar.radio("Expression value to plot:", EXPRESSION_PLOT_OPTIONS, key="expression_values")
+    st.sidebar.radio(
+        "Filter genes based on differential expression:",
+        list(DEG_FILTER_OPTIONS.keys()),  # Display text in the sidebar
+        key="filter_deg"
+        )
     st.sidebar.radio("Plot display style:", PLOT_DISPLAY_OPTIONS, key="plot_type")
     
 
@@ -128,7 +144,6 @@ def generate_plots(data):
         with col2:
             st.pyplot(figures[1])
    
-   
     # plot on separate panels
     else:
         figures = plots.multi_panel_gene_expression(data, st.session_state.expression_values)
@@ -176,9 +191,7 @@ def main():
         input_genes = process_input_genes(st.session_state.input_genes)
         # input_genes = st.session_state.input_genes
         if input_genes:
-
             gene_selection = map_gene_selection()
-
             if gene_selection == "xerophyta":
                 in_database = database.check_if_gene_in_database(input_genes)
                 genes_in_db = []
@@ -190,8 +203,14 @@ def main():
                     else:
                         genes_not_in_db.append(gene)
 
-                rna_seq_data = database.get_gene_expression_data(genes_in_db, st.session_state.experiment)
-                
+                # Fetch RNA-seq data and apply DEG filtering
+                selected_filter = DEG_FILTER_OPTIONS[st.session_state.filter_deg]
+                rna_seq_data = database.get_gene_expression_data(
+                    genes_in_db, 
+                    st.session_state.experiment, 
+                    filter_deg=selected_filter
+                )
+
                 show_missing_genes(genes_not_in_db)
                 if rna_seq_data.empty:
                     st.warning("No data found for the selected genes.")
