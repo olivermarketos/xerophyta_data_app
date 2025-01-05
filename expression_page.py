@@ -184,7 +184,6 @@ def main():
                 genes_in_db = []
                 genes_not_in_db = []
 
-                # Single loop to populate both lists
                 for gene, is_in_db in zip(input_genes, in_database):
                     if is_in_db:
                         genes_in_db.append(gene)
@@ -206,7 +205,12 @@ def main():
                 pass
 
             elif gene_selection == "go_term":
-                pass
+                in_database = database.check_if_go_term_in_database(input_genes)
+                terms_in_db = []
+                terms_not_in_db = []
+                st.write(in_database)
+                st.write(input_genes)
+
 
         else:
             st.markdown("Please enter at least one gene ID")

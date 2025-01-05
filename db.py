@@ -233,6 +233,9 @@ class DB():
         )
         return result 
     
+    
+
+
     def get_species(self):
         """Retrieve all the species from the database.
 
@@ -241,6 +244,10 @@ class DB():
         """
         results = self.session.query(models.Species).all()
         return results
+    
+    def get_gene_by_name(self, gene_name):
+        query = self.session.query(models.Gene).filter_by(gene_name=gene_name).first()
+        return query
     
     def get_species_by_name(self, species_name):  
         """Retrieve a species object by its name.
@@ -335,6 +342,29 @@ class DB():
                 in_db.append(False)
         return in_db
     
+    def check_if_go_term_in_database(self, go_terms):
+        """
+        Check if a GO term is in the database.
+
+        Parameters:
+            go_terms (list): A list of GO terms to check.
+
+        Returns:
+            List[str]: A boolean list if GO term is in the database.
+        """
+        in_db = []
+        for term in go_terms:
+            query = self.session.query(models.GO).filter(
+                or_
+                (models.GO.go_id.in_(term),models.GO.go_name.in_(term))
+                ).first()
+       
+            if query:
+                in_db.append(True)
+            else:
+                in_db.append(False)
+        return in_db
+
     def match_homologue_to_Xe_gene(self, At_list):
        
 
