@@ -118,7 +118,7 @@ def process_input_genes(input_genes):
     # Return unique tokens
     return list(set(tokens))
 
-def process_go_terms(input_go_terms):
+def process_go_input(input_go_terms):
     """
     Splits the user's input (comma, newline) into a list of unique, non-empty strings.
     """
@@ -127,9 +127,8 @@ def process_go_terms(input_go_terms):
     # Replace commas/newlines with spaces
     cleaned = input_go_terms.replace("\n", ",")
     # Split on whitespace
-    tokens = [t.strip() for t in cleaned.split(",") if t.strip()]
-    # Return unique tokens
-    return list(set(tokens))
+    terms = list(set(term.strip() for term in cleaned.split(",") if term.strip()))
+    return terms
 
 def map_gene_selection():
     """
@@ -239,29 +238,19 @@ def main():
                 pass
 
             elif gene_selection == "go_term":
-                input_genes = process_go_terms(st.session_state.input_genes)
-                genes = database.get_genes_by_go_term_or_description(input_genes)
-                if not genes:
+                input_gos = process_go_input(st.session_state.input_genes)
+                genes = database.get_genes_by_go_term_or_description(input_gos, st.session_state.species)
+                if genes is None:
                     st.warning(f"No genes found for GO term: {input_genes}")
-                in_database = database.check_if_gene_in_database(input_genes)
-                genes_in_db = []
-                genes_not_in_db = []
-
-                for gene, is_in_db in zip(input_genes, in_database):
-                    if is_in_db:
-                        genes_in_db.append(gene)
-                    else:
-                        genes_not_in_db.append(gene)
-
+                
+                gene_names = [gene.gene_name for gene in genes]
                 # Fetch RNA-seq data and apply DEG filtering
                 selected_filter = DEG_FILTER_OPTIONS[st.session_state.filter_deg]
                 rna_seq_data = database.get_gene_expression_data(
-                    genes_in_db, 
+                    gene_names, 
                     st.session_state.experiment, 
                     filter_deg=selected_filter
                 )
-
-                show_missing_genes(genes_not_in_db)
                 if rna_seq_data.empty:
                     st.warning("No data found for the selected genes.")
                 else:

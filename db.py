@@ -189,6 +189,7 @@ class DB():
         Returns:
             pd.DataFrame: A DataFrame containing the filtered gene expression data.
         """
+        
         query = (
             self.session.query(
                 models.Gene_expressions.gene_id,
@@ -401,8 +402,8 @@ class DB():
             models.Species.name.ilike(f"%{species_name}%")
         )
 
-        return query.all()
-
+        results = query.all()
+        return results
     
     
     def get_gene_annotation_data(self, gene_list):
