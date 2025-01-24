@@ -188,6 +188,9 @@ def generate_plots(data):
                 st.pyplot(gene_figures[0])
 
 
+def empty_genes_warning():
+    st.warning("No data found for the selected genes. Please double check that the correct boxes on the left are selected and that the entered terms are correct.")
+
 def show_missing_genes(genes):
     if genes:
         st.warning(f"The following gene(s) are not in the database: {', '.join(genes)}")
@@ -227,7 +230,7 @@ def main():
 
                 show_missing_genes(genes_not_in_db)
                 if rna_seq_data.empty:
-                    st.warning("No data found for the selected genes.")
+                    empty_genes_warning()   
                 else:
                     generate_plots(rna_seq_data)
 
@@ -252,7 +255,7 @@ def main():
                     filter_deg=selected_filter
                 )
                 if rna_seq_data.empty:
-                    st.warning("No data found for the selected genes.")
+                    empty_genes_warning()
                 else:
                     generate_plots(rna_seq_data)
 

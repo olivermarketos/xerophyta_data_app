@@ -141,42 +141,6 @@ class DB():
             self.session.commit()
 
 
-    # pass dictionary with 
-    def add_at_homologues(self, acc_num, at_locus, common_name_list):
-        xe_gene = self.session.query(models.Gene_info).filter(models.Gene_info.Hit_ACC== acc_num).all()
-    
-        # Step 3: Create or retrieve Arabidopsis homologue data
-        # First, check if the homologue already exists
-        homologue = self.session.query(models.Arabidopsis_Homologue).filter(models.Arabidopsis_Homologue.accession_number==acc_num).first()
-
-        # If the homologue doesn't exist, create it
-        if homologue is None:
-            homologue = models.Arabidopsis_Homologue(
-                accession_number=acc_num,
-                at_locus= at_locus # Example locus
-            )
-            self.session.add(homologue)
-
-        # Step 4: Add common names
-        # Assuming we have multiple common names for this accession number
-
-        for name in common_name_list:
-        #     # Check if the common name exists for this homologue
-            existing_common_name = self.session.query(models.At_Common_Names).filter_by(name=name, arabidopsis_id=homologue.arabidopsis_id).first()
-
-            if existing_common_name is None:
-                common_name = models.At_Common_Names(name=name, homologue=homologue)
-                self.session.add(common_name)
-
-        #  Step 5: Associate the XeGene with the Arabidopsis homologue (many-to-many relationship)
-        for gene in xe_gene:
-
-            if homologue not in gene.homologues:
-                gene.homologues.append(homologue)
-
-        # Step 6: Commit the transaction
-        self.session.commit()
-
     def get_gene_expression_data(self, gene_names, experiment_name, filter_deg=DEGFilter.SHOW_ALL):
         """
         Fetches RNA-seq gene expression data for the specified genes and experiment, applying DEG filtering if required.
@@ -245,6 +209,44 @@ class DB():
     def get_gene_by_name(self, gene_name):
         query = self.session.query(models.Gene).filter_by(gene_name=gene_name).first()
         return query
+    
+    def query_genes_by_all(self, species, xero_genes, arab_genes, adv_terms):
+        query = (
+            self.session.query(models.Gene)
+            .outerjoin(models.Species)
+            .outerjoin(models.Gene.annotations)
+            .outerjoin(models.Annotation.go_ids)
+            .outerjoin(models.Annotation.enzyme_codes)
+            .outerjoin(models.Annotation.interpro_ids)
+            .outerjoin(models.Gene.arabidopsis_homologues)
+            .distinct()
+        )
+
+        if species:
+            query = query.filter(models.Species.name == species)
+
+        if xero_genes:
+            query = query.filter(or_(*[models.Gene.gene_name.ilike(f"{g}") for g in xero_genes]))
+
+        # TODO implement once At genes added to db
+        if arab_genes:
+            pass
+
+        if adv_terms:
+            query = query.filter(
+                or_(
+                    *[
+                        models.GO.go_id.ilike(f"%{t}%") |
+                        models.GO.go_name.ilike(f"%{t}%") |
+                        models.EnzymeCode.enzyme_code.ilike(f"%{t}%") |
+                        models.EnzymeCode.enzyme_name.ilike(f"%{t}%") |
+                        models.InterPro.interpro_id.ilike(f"%{t}%") |
+                        models.InterPro.interpro_go_name.ilike(f"%{t}%")
+                        for t in adv_terms
+                    ]
+                )
+            )
+        return query.all()
     
     def get_species_by_name(self, species_name):  
         """Retrieve a species object by its name.
