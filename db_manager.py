@@ -57,7 +57,7 @@ def add_gene_sequence_from_fasta(filename, species_id):
                       "species_id": species_id,
                       "coding_sequence": str(seq_record.seq)} 
                       for seq_record in SeqIO.parse(f, "fasta")]
-    database.create_or_update(models.Gene, records, "gene_name")
+    database.create_or_update(models.Gene, records, ["gene_name"])
     print("Done")
 
 def parse_annotations(filename):
