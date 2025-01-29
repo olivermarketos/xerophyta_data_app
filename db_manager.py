@@ -105,7 +105,7 @@ def add_gene_annotations(filename, species_id):
         }
         # populate the annotation table
         # TODO this is slow, consider batching
-        annotation_instance = database.create_or_update(models.Annotation, [annotation_data], lookup_fields= "gene_id")
+        annotation_instance = database.create_or_update(models.Annotation, [annotation_data], lookup_fields= ["gene_id"])
 
         go_terms = zip(row["GO IDs"], row["GO Names"])
         for go_id, go_name in go_terms:
@@ -114,7 +114,7 @@ def add_gene_annotations(filename, species_id):
                 "go_branch": go_id.split(":")[0],  # Extract branch (P, F, or C)
                 "go_name": go_name
             }
-            go_instance = database.create_or_update(models.GO, [go_data], lookup_fields="go_id")
+            go_instance = database.create_or_update(models.GO, [go_data], lookup_fields=["go_id"])
             if go_instance not in annotation_instance.go_ids:
                 annotation_instance.go_ids.append(go_instance)
 
@@ -125,7 +125,7 @@ def add_gene_annotations(filename, species_id):
                 "enzyme_code": enzyme_code,
                 "enzyme_name": enzyme_name
             }
-            enzyme_instance = database.create_or_update(models.EnzymeCode, [enzyme_data], lookup_fields="enzyme_code")
+            enzyme_instance = database.create_or_update(models.EnzymeCode, [enzyme_data], lookup_fields=["enzyme_code"])
             if enzyme_instance not in annotation_instance.enzyme_codes:
                 annotation_instance.enzyme_codes.append(enzyme_instance)
 
@@ -134,7 +134,7 @@ def add_gene_annotations(filename, species_id):
             interpro_data = {
                 "interpro_id": interpro_id
             }
-            interpro_instance = database.create_or_update(models.InterPro, [interpro_data], lookup_fields="interpro_id")
+            interpro_instance = database.create_or_update(models.InterPro, [interpro_data], lookup_fields=["interpro_id"])
             if interpro_instance not in annotation_instance.interpro_ids:
                 annotation_instance.interpro_ids.append(interpro_instance)
 
