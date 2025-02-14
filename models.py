@@ -89,7 +89,7 @@ class Annotation(Base):
 class ArabidopsisHomologue(Base):
     __tablename__ = "arabidopsis_homologues"
     id = Column(Integer, primary_key=True)
-
+    
     a_thaliana_locus = Column(String, nullable=True, unique=True)
     a_thaliana_common_name = Column(String, nullable=True)
     description = Column(Text, nullable=True, default="No Blast Hit")
