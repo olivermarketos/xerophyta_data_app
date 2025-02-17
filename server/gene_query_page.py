@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime 
-import db as db  # Your custom db module
-from models import (
+import database.db as db  # Your custom db module
+from database.models import (
     Base, Species, Gene, Annotation, GO,
     EnzymeCode, InterPro, ArabidopsisHomologue
 )
