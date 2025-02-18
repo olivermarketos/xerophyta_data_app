@@ -38,6 +38,51 @@ class DB():
 
         return gene
 
+    def add_a_thaliana_gene_mappings(self, mapping_df):
+        """Add A. thaliana gene locus and common name mappings to the Arabidopsis Homologue table.
+
+
+        Args:
+            mapping_df: dataframe containing the mapping data in format [Gene name, At Locus ID, Wiki gene description] 
+                        e.g Xele.ptg000001l.104,AT5G47390,myb-like transcription factor family protein
+        """
+        required_columns = ["Gene name","At Locus ID","Wiki gene description"]
+        if not all(col in mapping_df.columns for col in required_columns):
+            raise ValueError(f"Mapping dataframe must contain columns: {required_columns}")
+        
+        i = 0
+        for  _, row in mapping_df.iterrows():
+            gene_name = row['Gene name']
+            locus = row['At Locus ID']
+            common_name = row['Wiki gene description"']
+            
+            # 1. Find the existing Gene
+            gene = self.session.query(models.Gene).filter_by(gene_name=gene_name).first()
+            if not gene:
+                # If you have missing genes, handle it or skip
+                print(f"No gene found for {gene_name}, skipping.")
+                continue
+            
+            # 2. See if there's an existing ArabidopsisHomologue with this locus
+            homologue = self.session.query(models.ArabidopsisHomologue).filter_by(a_thaliana_locus=locus).first()
+            if not homologue:
+                # Create new
+                homologue = models.ArabidopsisHomologue(
+                    a_thaliana_locus=locus,
+                    a_thaliana_common_name=common_name,
+                )
+                self.session.add(homologue)
+            
+            # 3. Link them (only if not already linked)
+            if homologue not in gene.arabidopsis_homologues:
+                gene.arabidopsis_homologues.append(homologue)
+
+            if i % 100 == 0:
+                self.session.commit()    
+            i += 1
+        self.session.commit()
+        print(f"Added {i} gene mappings to the database.")
+        
 
 
     def create_or_update(self, model, values, lookup_fields):
