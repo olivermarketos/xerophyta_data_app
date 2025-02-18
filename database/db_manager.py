@@ -210,7 +210,21 @@ def add_DEG_data(file_name, experiment_name):
     else:
         print("No records to process.")
     
+def add_a_thaliana_gene_mapping(mapping_file):
+    database = db.DB()
+    
+    data = pd.read_csv(mapping_file)
+    
+    # Ensure columns exist
+    required_columns = ["Gene name","At Locus ID","Wiki gene description"]
+    if not all(col in data.columns for col in required_columns):
+        raise ValueError(f"CSV is missing one or more required columns: {required_columns}")
 
+    data.sort_values("At Locus ID", inplace=True, ascending=False)
+
+    database.add_a_thaliana_gene_mappings(data)
+
+    
 def main(species_name, fasta_file, annotation_file, homologue_file):
     database = db.DB()
     species = database.add_species(species_name) # add species to database
