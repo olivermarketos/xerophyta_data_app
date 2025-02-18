@@ -8,7 +8,7 @@ import pandas as pd
 
 # DATABASE_NAME = "xerophyta_db.sqlite"
 # DATABASE_NAME = "test_db.sqlite"
-DATABASE_NAME = "all_xerophyta_species_db.sqlite"
+DATABASE_NAME = "data/all_xerophyta_species_db.sqlite"
 
 
 ####################
