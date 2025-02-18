@@ -92,14 +92,7 @@ class ArabidopsisHomologue(Base):
     
     a_thaliana_locus = Column(String, nullable=True, unique=True)
     a_thaliana_common_name = Column(String, nullable=True)
-    description = Column(Text, nullable=True, default="No Blast Hit")
-
-    e_value = Column(Float, nullable=True)
-    similarity = Column(Float, nullable=True)
-    bit_score = Column(Float, nullable=True)
-    alignment_length = Column(Integer, nullable=True)
-    positives = Column(Integer, nullable=True)
-
+    
     
     genes = relationship('Gene',
                          secondary=gene_homologue_association,
