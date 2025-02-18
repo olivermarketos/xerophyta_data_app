@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import  db
-import plots
-from constants import DEGFilter
+import  database.db as db
+import utils.plots as plots
+from utils.constants import DEGFilter
 
 
 

@@ -1,26 +1,10 @@
-"""
-Helper file for various database tasks, like creating and loading data.
-
-Accepted command-line arguments:
-    create_db
-    add_users
-    add_chats
-    add_messages
-    get_messages
-    add_user
-    start_chat
-
-"""
-
-import argparse
 import re
+from Bio import SeqIO
 import models as models
 import os
 import sqlalchemy as sq
 import db as db
 import pandas as pd
-import uuid
-from Bio import SeqIO
 
 # DATABASE_NAME = "xerophyta_db.sqlite"
 # DATABASE_NAME = "test_db.sqlite"

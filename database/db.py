@@ -2,10 +2,9 @@ import sqlalchemy as sq
 from sqlalchemy.orm import sessionmaker
 import models as models
 import pandas as pd
-from sqlalchemy.orm import joinedload
 from sqlalchemy import or_, func
 from sqlalchemy.exc import SQLAlchemyError
-from constants import DEGFilter
+from utils.constants import DEGFilter
 
 
 class DB():
