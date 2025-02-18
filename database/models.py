@@ -77,6 +77,13 @@ class Annotation(Base):
     description = Column(Text, nullable=True)
     e_value = Column(Float, nullable=True)
     
+
+    similarity = Column(Float, nullable=True)
+    bit_score = Column(Float, nullable=True)
+    alignment_length = Column(Integer, nullable=True)
+    positives = Column(Integer, nullable=True)
+
+
     gene = relationship("Gene", back_populates="annotations") # creates a back reference to the gene table, so that we can access the gene object from the annotation object e.g annotation.gene
     
     # create many to many relationships with GO, EnzymeCode and InterPro tables
