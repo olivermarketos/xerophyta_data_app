@@ -54,7 +54,7 @@ class DB():
         for  _, row in mapping_df.iterrows():
             gene_name = row['Gene name']
             locus = row['At Locus ID']
-            common_name = row['Wiki gene description"']
+            common_name = row['Wiki gene description']
             
             # 1. Find the existing Gene
             gene = self.session.query(models.Gene).filter_by(gene_name=gene_name).first()
@@ -78,7 +78,8 @@ class DB():
                 gene.arabidopsis_homologues.append(homologue)
 
             if i % 100 == 0:
-                self.session.commit()    
+                self.session.commit() 
+                print(f"Processed {i} gene mappings.")   
             i += 1
         self.session.commit()
         print(f"Added {i} gene mappings to the database.")
