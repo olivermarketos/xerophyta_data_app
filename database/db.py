@@ -1,6 +1,6 @@
 import sqlalchemy as sq
 from sqlalchemy.orm import sessionmaker
-import models as models
+import database.models as models 
 import pandas as pd
 from sqlalchemy import or_, func
 from sqlalchemy.exc import SQLAlchemyError
@@ -10,7 +10,7 @@ from utils.constants import DEGFilter
 class DB():
 
     # DATABASE_NAME = "test_db.sqlite"
-    DATABASE_NAME = "data/all_xerophyta_species_db.sqlite"
+    DATABASE_NAME = "database/data/all_xerophyta_species_db.sqlite"
     def __init__(self) -> None:
         
         self.engine = sq.create_engine(f"sqlite:///{self.DATABASE_NAME}", echo = False)
