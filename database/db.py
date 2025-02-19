@@ -84,8 +84,6 @@ class DB():
         self.session.commit()
         print(f"Added {i} gene mappings to the database.")
         
-
-
     def create_or_update(self, model, values, lookup_fields):
         """
     Generic method to create or update any record in any model and return an instance of that record.
@@ -185,7 +183,6 @@ class DB():
         if instances:
             self.session.commit()
 
-
     def get_gene_expression_data(self, gene_names, experiment_name, filter_deg=DEGFilter.SHOW_ALL):
         """
         Fetches RNA-seq gene expression data for the specified genes and experiment, applying DEG filtering if required.
@@ -236,11 +233,6 @@ class DB():
         result = query.all()
         columns = ["gene_id", "normalised_expression", "log2_expression", "treatment", "time", "replicate","gene_name"]
         return pd.DataFrame(result, columns=columns)
-    
-    
-    
-    
-
 
     def get_species(self):
         """Retrieve all the species from the database.
@@ -275,7 +267,10 @@ class DB():
 
         # TODO implement once At genes added to db
         if arab_genes:
-            pass
+            query = query.filter(or_(*[
+                                    models.ArabidopsisHomologue.a_thaliana_locus.ilike(f"{g}") |
+                                    models.ArabidopsisHomologue.a_thaliana_common_name.ilike(f"{g}")
+                                      for g in arab_genes]))
 
         if adv_terms:
             query = query.filter(
@@ -292,6 +287,86 @@ class DB():
                 )
             )
         return query.all()
+    
+    def get_gene_annotation_data(self, gene_list, query_type):
+        """Get annotation data associated with a list of Xerophyta gene names, GO terms or arabidopsis homologes (locus or common name).
+
+        Args:
+            gene_list (_type_): list of gene names, GO terms or arabidopsis homologes (locus or common name).
+            query_type (_type_): The type of query to perform (e.g., "xerophyta_gene_name", "go_id", "A_thaliana_homologue").
+
+        Returns:
+            _type_: _description_
+        """
+        # ensure its a list
+        if isinstance(gene_list, str):
+            gene_list = [gene_list]
+
+        results = []
+        if query_type == "xerophyta_gene_name":
+            results = self.get_gene_annotation_data_from_xerophyta_gene_names(gene_list)
+        elif query_type == "go_id":
+            results = self.get_gene_annotation_data_from_go_terms(gene_list)
+        elif query_type == "A_thaliana_homologue":
+            results = self.get_gene_annotation_data_from_A_thaliana_homologues(gene_list)
+
+        return results
+
+    def get_gene_annotation_data_from_xerophyta_gene_names(self, gene_list):
+
+        query = (
+            self.session.query(
+                models.Gene.id.label("gene_id"),
+                models.Species.name.label("species_name"),
+                models.Gene.gene_name,
+                models.ArabidopsisHomologue.a_thaliana_locus,
+                models.ArabidopsisHomologue.a_thaliana_common_name,
+
+                # models.Gene.coding_sequence,
+
+                models.Annotation.description,
+                models.Annotation.e_value,
+                models.Annotation.similarity,
+                models.Annotation.bit_score,
+                models.Annotation.alignment_length,
+                models.Annotation.positives,
+
+               
+                models.GO.go_id,
+                models.GO.go_name,
+
+                models.EnzymeCode.enzyme_code,
+                models.EnzymeCode.enzyme_name,
+
+                models.InterPro.interpro_id,
+                models.InterPro.interpro_go_name,
+                )
+                .join(models.Gene.species)
+                .outerjoin(models.Gene.annotations)
+                .outerjoin(models.Gene.arabidopsis_homologues)
+                .outerjoin(models.Annotation.go_ids)
+                .outerjoin(models.Annotation.enzyme_codes)
+                .outerjoin(models.Annotation.interpro_ids)
+                .filter(models.Gene.gene_name.in_(gene_list))
+
+        )
+        results = query.all()
+
+        return results
+        # results = []
+        # for gene in gene_list:
+        #     query = self.session.query(models.Gene).filter_by(gene_name=gene).first()
+        #     if query:
+        #         results.append(query)
+        #     else:
+        #         results.append(None)
+        # return results
+    
+    def get_gene_annotation_data_from_go_terms(self, go_terms):
+        return
+    
+    def get_gene_annotation_data_from_A_thaliana_homologues(self, homologues):
+        return
     
     def get_species_by_name(self, species_name):  
         """Retrieve a species object by its name.
@@ -453,28 +528,4 @@ class DB():
         return results
     
     
-    def get_gene_annotation_data(self, gene_list):
-        
-        # ensure its a list
-        if isinstance(gene_list, str):
-            gene_list = [gene_list]
-        
-        query = self.session.query(models.Gene_info).filter(models.Gene_info.gene_name.in_(gene_list)).all()
-
-        return query
-        
-    def get_uniprot_id(self):
-        query = self.session.query(models.Gene_info.Hit_ACC).all()
-        return query
-
-    def genes_no_info(self):
-        results = self.session.query(models.Gene_info.gene_name).filter(models.Gene_info.sequence_description == None).all()
-        return results
-
-    def genes_from_seqdata(self):
-        results = self.session.query(models.Gene_expressions.gene_name).distinct().all()
-        return results
-    
-    def get_gene_names(self):
-        results = self.session.query(models.Gene_info.gene_name).all()
-        return results
+   
