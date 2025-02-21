@@ -12,3 +12,4 @@ secrets
 all_data
 __pycache__/
 *.pyc
+*.pyo
