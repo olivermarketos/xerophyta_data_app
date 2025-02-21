@@ -86,7 +86,8 @@ def map_gene_selection():
     """
     gene_selection = {
         "Xerophyta GeneID": "xerophyta",
-        "Arabidopsis ortholog": "arabidopsis",
+        "Arabidopsis homologue locus": "a_thaliana_locus",
+        "Arabidopsis homologue common name": "a_thaliana_common_name",
         "Genes with GO term": "go_term"
     }
     return gene_selection[st.session_state.gene_selection]
@@ -108,16 +109,56 @@ def main():
             gene_selection = map_gene_selection()
             selected_species = st.session_state.species
             input_genes = parse_multi_input(input_genes)
-            annotation_data = database.get_gene_annotation_data(input_genes, "xerophyta_gene_name",selected_species)
+
+            annotation_data = []
+            matched_input = []
+            missing_input = []
+            if st.session_state.gene_input_type == "Gene_ID":
+                annotation_data = database.get_gene_annotation_data(input_genes, "xerophyta_gene_name",selected_species)
+            
+                if annotation_data:
+                    matched_input = {gene.gene_name.lower() for gene in annotation_data}
+                else:
+                    matched_input = set()
+                missing_input = {gene for gene in input_genes if gene.lower() not in matched_input}
+
+
+            elif st.session_state.gene_input_type == "Arab_loci":
+                annotation_data = database.get_gene_annotation_data(input_genes, "a_thaliana_locus",selected_species)
+            
+                if annotation_data:
+                    matched_input = {gene.arabidopsis_homologues[0].a_thaliana_locus.lower() for gene in annotation_data}
+                
+                else:
+                    matched_input = set()
+                
+                missing_input = {gene for gene in input_genes if gene.lower() not in matched_input}
+
+
+            elif st.session_state.gene_input_type == "Arab_common_name":
+                #TODO
+                annotation_data = []
+
+
+            elif st.session_state.gene_input_type == "GO_term":
+                # TODO
+                annotation_data = []
+
+            
+
             results= database.flatten_gene_annotation_data(annotation_data)
             df = pd.DataFrame(results)
 
             st.subheader("Search Results")
             st.write(f"Found {len(results)} gene(s).")
+            if missing_input:
+                st.warning(f"Input genes not found: {", ".join([i for i in missing_input])}")
             selected_columns = st.session_state.selected_columns
 
-            st.dataframe(df[selected_columns],use_container_width=True)        
+            if not df.empty:
+                st.dataframe(df[selected_columns],use_container_width=True)        
 
+            
 
             #-------------------------
             # DOWNLOAD BUTTONS
@@ -125,7 +166,10 @@ def main():
             col1, col2 = st.columns(2)
             
             # DOWNLOAD GENE DATA BUTTON
-            csv_data = df[selected_columns].to_csv(index=False)
+            if not df.empty:
+                csv_data = df[selected_columns].to_csv(index=False)
+            else:
+                csv_data = "No data was retrieved from the database. Please double-check your input."
             timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             file_name = f"Xerophyta_gene_query_results_{timestamp_str}.csv"
             

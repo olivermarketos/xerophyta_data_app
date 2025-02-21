@@ -19,9 +19,14 @@ GENE_SELECTION_OPTIONS = {
         "key": "Gene_ID",
         "input_label": "Enter Xerophyta GeneIDs separated by commas, space or newline:"
     },
-    "Arabidopsis ortholog": {
-        "placeholder": "At4g32010, OXA1",
-        "key": "Arab_homolog",
+    "Arabidopsis homologue locus": {
+        "placeholder": "At4g32010, At5g67620, AT3G13850",
+        "key": "Arab_loci",
+        "input_label": "Enter Arabidopsis orthologues separated by commas, space or newline:"
+    },
+    "Arabidopsis homologue common name": {
+        "placeholder": "glyoxylate reductase 2, OXA1",
+        "key": "Arab_common_name",
         "input_label": "Enter Arabidopsis orthologues separated by commas, space or newline:"
     },
     "Genes with GO term": {

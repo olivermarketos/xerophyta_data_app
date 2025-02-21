@@ -309,8 +309,10 @@ class DB():
             results = self.get_gene_annotation_data_from_xerophyta_gene_names(gene_list)
         elif query_type == "go_id":
             results = self.get_gene_annotation_data_from_go_terms(gene_list)
-        elif query_type == "A_thaliana_homologue":
-            results = self.get_gene_annotation_data_from_A_thaliana_homologues(gene_list)
+        elif query_type == "a_thaliana_locus":
+            loci_results = self.get_gene_annotation_data_from_a_thaliana_homologue(gene_list)
+            genes = [gene.gene_name for gene in loci_results]
+            results = self.get_gene_annotation_data_from_xerophyta_gene_names(genes)
 
         return results
 
@@ -331,6 +333,18 @@ class DB():
             .all()
         )
         return results
+    def get_gene_annotation_data_from_a_thaliana_homologue(self, gene_list):
+        
+        results = (
+            self.session.query(models.Gene)
+            .join(models.Gene.arabidopsis_homologues)
+            .filter(
+                func.lower(models.ArabidopsisHomologue.a_thaliana_locus)
+                .in_([locus.lower() for locus in gene_list]))
+            .all()
+        )
+        return results
+        
         
     def flatten_gene_annotation_data(self, gene_annotations):
         data = []
@@ -384,8 +398,6 @@ class DB():
     def get_gene_annotation_data_from_go_terms(self, go_terms):
         return
     
-    def get_gene_annotation_data_from_A_thaliana_homologues(self, homologues):
-        return
     
     def get_species_by_name(self, species_name):  
         """Retrieve a species object by its name.
