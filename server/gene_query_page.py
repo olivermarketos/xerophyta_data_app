@@ -157,7 +157,6 @@ def main():
 
             results= database.flatten_gene_annotation_data(annotation_data)
             df = pd.DataFrame(results)
-            df['e_value'] = df['e_value'].astype(float)
 
 
             st.subheader("Search Results")
@@ -167,6 +166,8 @@ def main():
             selected_columns = st.session_state.selected_columns
 
             if not df.empty:
+                df['e_value'] = df['e_value'].astype(float)
+                df.style.format({'e_value': '{:.2e}'})
                 st.dataframe(df[selected_columns],use_container_width=True)        
 
             
