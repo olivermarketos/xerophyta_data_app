@@ -10,22 +10,22 @@ database = db.DB()
 
 # for letting user select what data to display
 ALL_COLUMNS = [
-            "Species",
-            "Xerophyta Gene Name",
-            "A. thaliana homologue locus",
-            "A. thaliana homologue common name",
-            "Gene Description",
-            "e-value",
-            "similarity",
+            "species",
+            "gene_name",
+            "a_thaliana_locus",
+            "a_thaliana_common_name",
+            "description",
+            "coding_sequence",
+            "e_value",
             "bit_score",
+            "similarity",
             "alignment_length",
             "positives",
-            "GO id",
-            "GO name",
-            "Enzyme code",
-            "Enzyme name",
-            "Interpro_id",
-            "Interpro GO name"
+            "go_ids",
+            "go_names",
+            "enzyme_codes",
+            "enzyme_names",
+            "interpro_ids"
         ]
 
 def initialise_session_state():
@@ -61,8 +61,10 @@ def setup_sidebar():
             )
             st.session_state.gene_input_type = config["key"]
 
-    selected_columns = st.sidebar.multiselect(
-        "Select columns to display:", ALL_COLUMNS, default=ALL_COLUMNS)
+    st.sidebar.multiselect(
+        "Select columns to display:", ALL_COLUMNS, 
+        default=ALL_COLUMNS,
+        key="selected_columns")
 
 def parse_multi_input(text_input):
     """
@@ -105,16 +107,17 @@ def main():
         if input_genes:
             gene_selection = map_gene_selection()
             selected_species = st.session_state.species
-            st.write(st.session_state)
             input_genes = parse_multi_input(input_genes)
             annotation_data = database.get_gene_annotation_data(input_genes, "xerophyta_gene_name",selected_species)
             results= database.flatten_gene_annotation_data(annotation_data)
             df = pd.DataFrame(results)
-            st.dataframe(df)        
 
             st.subheader("Search Results")
             st.write(f"Found {len(results)} gene(s).")
-            # st.dataframe(df[selected_columns], use_container_width=True)
+            selected_columns = st.session_state.selected_columns
+
+            st.dataframe(df[selected_columns],use_container_width=True)        
+
 
             #-------------------------
             # DOWNLOAD BUTTONS
@@ -122,7 +125,7 @@ def main():
             col1, col2 = st.columns(2)
             
             # Download gene data button
-            csv_data = df.to_csv(index=False)
+            csv_data = df[selected_columns].to_csv(index=False)
             timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             file_name = f"Xerophyta_gene_query_results_{timestamp_str}.csv"
             
