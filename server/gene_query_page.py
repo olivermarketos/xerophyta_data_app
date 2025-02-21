@@ -157,6 +157,8 @@ def main():
 
             results= database.flatten_gene_annotation_data(annotation_data)
             df = pd.DataFrame(results)
+            df['e_value'] = df['e_value'].astype(float)
+
 
             st.subheader("Search Results")
             st.write(f"Found {len(results)} gene(s).")
