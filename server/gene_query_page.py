@@ -111,8 +111,8 @@ def main():
             input_genes = parse_multi_input(input_genes)
 
             annotation_data = []
-            matched_input = []
-            missing_input = []
+            matched_input = set()
+            missing_input = set()
             if st.session_state.gene_input_type == "Gene_ID":
                 annotation_data = database.get_gene_annotation_data(input_genes, "xerophyta_gene_name",selected_species)
             
@@ -136,9 +136,18 @@ def main():
 
 
             elif st.session_state.gene_input_type == "Arab_common_name":
-                #TODO
-                annotation_data = []
+                annotation_data = database.get_gene_annotation_data(input_genes, "a_thaliana_common_name",selected_species)
 
+                if annotation_data:
+                    # Determine which search terms did not match any homologues
+                    for gene in annotation_data:
+                        for homologue in gene.arabidopsis_homologues:
+                            common_name = homologue.a_thaliana_common_name.lower()
+                            for term in input_genes:
+                                if term.lower() in common_name:
+                                    matched_input.add(term)
+
+                    missing_input = [term for term in input_genes if term not in matched_input]
 
             elif st.session_state.gene_input_type == "GO_term":
                 # TODO

@@ -307,13 +307,21 @@ class DB():
         results = []
         if query_type == "xerophyta_gene_name":
             results = self.get_gene_annotation_data_from_xerophyta_gene_names(gene_list)
+        
+        
         elif query_type == "go_id":
             results = self.get_gene_annotation_data_from_go_terms(gene_list)
+        
+        
         elif query_type == "a_thaliana_locus":
-            loci_results = self.get_gene_annotation_data_from_a_thaliana_homologue(gene_list)
+            loci_results = self.get_gene_annotation_data_from_a_thaliana_locus_homologue(gene_list)
             genes = [gene.gene_name for gene in loci_results]
             results = self.get_gene_annotation_data_from_xerophyta_gene_names(genes)
 
+        elif query_type == "a_thaliana_common_name":
+            common_name_results = self.get_gene_annotation_data_from_a_thaliana_common_name(gene_list)
+            genes = [gene.gene_name for gene in common_name_results]
+            results = self.get_gene_annotation_data_from_xerophyta_gene_names(genes)
         return results
 
     def get_gene_annotation_data_from_xerophyta_gene_names(self, gene_list):
@@ -333,7 +341,7 @@ class DB():
             .all()
         )
         return results
-    def get_gene_annotation_data_from_a_thaliana_homologue(self, gene_list):
+    def get_gene_annotation_data_from_a_thaliana_locus_homologue(self, gene_list):
         
         results = (
             self.session.query(models.Gene)
@@ -344,6 +352,32 @@ class DB():
             .all()
         )
         return results
+    
+    def get_gene_annotation_data_from_a_thaliana_common_name(self, gene_list):
+        """
+            Search for genes based on partial matches of the Arabidopsis common names.
+            
+            Parameters:
+                session (Session): SQLAlchemy session.
+                search_terms (list of str): List of search terms to match against the common names.
+            
+            Returns:
+                List of Gene objects that match any of the search criteria.
+            """
+        filters = [
+                models.ArabidopsisHomologue.a_thaliana_common_name.ilike(f"%{term}%")
+                for term in gene_list
+                ]
+    
+        # Query Genes by joining with the homologues table and filtering with an OR condition
+        results = (
+            self.session.query(models.Gene)
+                .join(models.Gene.arabidopsis_homologues)
+                .filter(or_(*filters))
+                .distinct()
+        )
+        return results.all()
+    
         
         
     def flatten_gene_annotation_data(self, gene_annotations):
