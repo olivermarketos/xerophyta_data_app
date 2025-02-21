@@ -90,6 +90,7 @@ def map_gene_selection():
     return gene_selection[st.session_state.gene_selection]
 
 
+
 def main():
     initialise_session_state()
     setup_sidebar()
@@ -105,7 +106,9 @@ def main():
             gene_selection = map_gene_selection()
             selected_species = st.session_state.species
             st.write(st.session_state)
-            results = database.get_gene_annotation_data(input_genes, "xerophyta_gene_name",selected_species)
+            input_genes = parse_multi_input(input_genes)
+            annotation_data = database.get_gene_annotation_data(input_genes, "xerophyta_gene_name",selected_species)
+            results= database.flatten_gene_annotation_data(annotation_data)
             df = pd.DataFrame(results)
             st.dataframe(df)        
 

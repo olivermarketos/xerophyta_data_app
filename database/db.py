@@ -332,101 +332,54 @@ class DB():
         )
         return results
         
-        query = (
-            self.session.query(
-                models.Gene.id.label("gene_id"),
-                models.Species.name.label("species_name"),
-                models.Gene.gene_name,
-                models.ArabidopsisHomologue.a_thaliana_locus,
-                models.ArabidopsisHomologue.a_thaliana_common_name,
+    def flatten_gene_annotation_data(self, gene_annotations):
+        data = []
+        for gene in gene_annotations:
+            species = gene.species.name 
+            gene_name=gene.gene_name
+            coding_sequence = gene.coding_sequence
+            a_thaliana_locus = None
+            a_thaliana_common_name = None
 
-                models.Gene.coding_sequence,
+            for homologue in gene.arabidopsis_homologues:
+                a_thaliana_locus = homologue.a_thaliana_locus
+                a_thaliana_common_name = homologue.a_thaliana_common_name
 
-                models.Annotation.description,
-                models.Annotation.e_value,
-                models.Annotation.similarity,
-                models.Annotation.bit_score,
-                models.Annotation.alignment_length,
-                models.Annotation.positives,
-
-               
-                models.GO.go_id,
-                models.GO.go_name,
-
-                models.EnzymeCode.enzyme_code,
-                models.EnzymeCode.enzyme_name,
-
-                models.InterPro.interpro_id,
-                models.InterPro.interpro_go_name,
-                )
-                .join(models.Gene.species)
-                .outerjoin(models.Gene.annotations)
-                .outerjoin(models.Gene.arabidopsis_homologues)
-                .outerjoin(models.Annotation.go_ids)
-                .outerjoin(models.Annotation.enzyme_codes)
-                .outerjoin(models.Annotation.interpro_ids)
-                .filter(models.Gene.gene_name.in_(gene_list))
-
-        )
-        results = query.distinct()
-        return results
-
-        genes = (
-            self.session.query(models.Gene)
-            .filter(models.Gene.gene_name.in_(gene_list))
-            .options(
-                joinedload(models.Gene.annotations).joinedload(models.Annotation.go_ids),
-                joinedload(models.Gene.annotations).joinedload(models.Annotation.enzyme_codes),
-                joinedload(models.Gene.annotations).joinedload(models.Annotation.interpro_ids),
-                joinedload(models.Gene.arabidopsis_homologues),
-                joinedload(models.Gene.species)
-            )
-            .all()
-        )
-    
-        # 2) Build a row per Gene
-        rows = []
-        for g in genes:
-            row = {
-                "gene_id": g.id,
-                "species_name": g.species.name if g.species else None,
-                "gene_name": g.gene_name,
-                "coding_sequence": g.coding_sequence,
-                # Collect all homologue data in a list of dicts or just a list of locus
-                "homologues": [h.a_thaliana_locus for h in g.arabidopsis_homologues],
-            }
-            
-            # For all annotations, gather GO, enzyme, interpro
-            go_ids = set()
-            enzyme_codes = set()
-            interpro_ids = set()
-            
-            for ann in g.annotations:
-                # basic annotation info
-                # (optionally store in row if you want e_value, etc.)
+            for annotation in gene.annotations:
+                description = annotation.description
+                e_value = annotation.e_value
+                bit_score = annotation.bit_score
+                similarity = annotation.similarity
+                alignment_length = annotation.alignment_length
+                positives = annotation.positives
                 
-                for go in ann.go_ids:
-                    go_ids.add(go.go_id)
-                for ec in ann.enzyme_codes:
-                    enzyme_codes.add(ec.enzyme_code)
-                for ip in ann.interpro_ids:
-                    interpro_ids.add(ip.interpro_id)
+                go_ids = ", ".join([go.go_id for go in annotation.go_ids])
+                go_names = ", ".join([go.go_name for go in annotation.go_ids])
+
+                enzyme_codes = ", ".join([enzyme_codes.enzyme_code for enzyme_codes in annotation.enzyme_codes])
+                enzyme_names = ", ".join([enzyme_codes.enzyme_name for enzyme_codes in annotation.enzyme_codes])
             
-            row["go_list"] = list(go_ids)
-            row["enzyme_list"] = list(enzyme_codes)
-            row["interpro_list"] = list(interpro_ids)
-            
-            rows.append(row)
-        
-        return rows
-        # results = []
-        # for gene in gene_list:
-        #     query = self.session.query(models.Gene).filter_by(gene_name=gene).first()
-        #     if query:
-        #         results.append(query)
-        #     else:
-        #         results.append(None)
-        # return results
+                interpro_ids = ", ".join([interpro.interpro_id for interpro in annotation.interpro_ids])
+
+                data.append({
+                    "species": species,
+                    "gene_name": gene_name,
+                    "a_thaliana_locus": a_thaliana_locus,
+                    "a_thaliana_common_name": a_thaliana_common_name,
+                    "description": description,
+                    "coding_sequence": coding_sequence,
+                    "e_value": e_value,
+                    "bit_score": bit_score,
+                    "similarity": similarity,
+                    "alignment_length": alignment_length,
+                    "positives": positives,
+                    "go_ids": go_ids,
+                    "go_names": go_names,
+                    "enzyme_codes": enzyme_codes,
+                    "enzyme_names": enzyme_names,
+                    "interpro_ids": interpro_ids
+                })
+        return data
     
     def get_gene_annotation_data_from_go_terms(self, go_terms):
         return
