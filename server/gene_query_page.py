@@ -94,7 +94,7 @@ def map_gene_selection():
 def main():
     initialise_session_state()
     setup_sidebar()
-
+    instruction_page()
     
     if st.sidebar.button("Run Query"):
         st.session_state.run_query = True
@@ -136,17 +136,11 @@ def main():
 
             # Download FASTA button
             fasta_entries = []
-            for g in results:
-                # Let’s assume each Gene has .coding_sequence
-                seq = g.coding_sequence or ""
-                # We'll use the first annotation's description if it exists.
-                # If your real models have multiple annotations, adapt the logic below:
+            for gene in results:
+                seq = gene["coding_sequence"] or ""
                 
-                # TODO add the descripton to the file name, or add the Arabidopsis homologue
-                # desc = g.annotation_description or "No Description"
-
                 # FASTA header: >GeneName description
-                header = f">{g.gene_name}"
+                header = f">{gene["gene_name"]} {gene['description']}"
 
                 # Build the FASTA entry (header + sequence)
                 fasta_entries.append(header)
@@ -179,7 +173,8 @@ def instruction_page():
         - The panel on the left provides various means to query the database for gene information.
         - You can query the database using the following methods:
             1. Filter by Xeropyhta species
-            2. Query gene ID or arabidopsis homologue (common name or locus ID)
+            2. Query Xerophyta gene ID  e.g Xele.ptg000049l.138, Xele.ptg000049l.140, Xele.ptg000049l.52
+                or arabidopsis homologue (common name or locus ID)
             3. Query GO ID or GO name, Enzyme code or name, or InterPro ID
         """
     )
