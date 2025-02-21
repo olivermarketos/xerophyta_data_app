@@ -124,7 +124,7 @@ def main():
             #-------------------------
             col1, col2 = st.columns(2)
             
-            # Download gene data button
+            # DOWNLOAD GENE DATA BUTTON
             csv_data = df[selected_columns].to_csv(index=False)
             timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             file_name = f"Xerophyta_gene_query_results_{timestamp_str}.csv"
@@ -137,7 +137,7 @@ def main():
                     mime="text/csv"
                 )
 
-            # Download FASTA button
+            # DOWNLOAD FASTA BUTTON
             fasta_entries = []
             for gene in results:
                 seq = gene["coding_sequence"] or ""
