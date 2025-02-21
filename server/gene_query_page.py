@@ -166,8 +166,6 @@ def main():
             selected_columns = st.session_state.selected_columns
 
             if not df.empty:
-                df['e value'] = df['e value'].astype(float)
-                df.style.format({'e value': '{:.2e}'})
                 st.dataframe(df[selected_columns],use_container_width=True)        
 
             
