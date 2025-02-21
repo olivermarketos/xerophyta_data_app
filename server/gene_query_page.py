@@ -2,10 +2,67 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime 
 import database.db as db  # Your custom db module
-from database.models import (
-    Base, Species, Gene, Annotation, GO,
-    EnzymeCode, InterPro, ArabidopsisHomologue
-)
+from utils.constants import GENE_SELECTION_OPTIONS
+
+st.title("Xerophyta Database Explorer")
+st.divider()
+database = db.DB()
+
+# for letting user select what data to display
+ALL_COLUMNS = [
+            "Species",
+            "Xerophyta Gene Name",
+            "A. thaliana homologue locus",
+            "A. thaliana homologue common name",
+            "Gene Description",
+            "e-value",
+            "similarity",
+            "bit_score",
+            "alignment_length",
+            "positives",
+            "GO id",
+            "GO name",
+            "Enzyme code",
+            "Enzyme name",
+            "Interpro_id",
+            "Interpro GO name"
+        ]
+
+def initialise_session_state():
+    if "run_query" not in st.session_state:
+        st.session_state.run_query = False
+    if "input_genes" not in st.session_state:
+        st.session_state.input_genes = ""
+    # if "species" not in st.session_state:
+    #     st.session_state.species = "Any"
+    # if "show_raw_data" not in st.session_state:
+    #     st.session_state.show_raw_data = False
+
+def setup_sidebar():
+    st.sidebar.header("Search Inputs")
+    
+    # Species selection
+    species_list = database.get_species()
+    species_options = ["Any"] + [sp.name for sp in species_list]
+    selected_species = st.sidebar.selectbox("Select Species (optional):", species_options)
+    st.session_state.species = selected_species
+
+    # Query inputs
+    selected_gene_selection = st.sidebar.radio("Gene selection method:", list(GENE_SELECTION_OPTIONS.keys()), key="gene_selection")
+    # Gene input field based on selection
+    for option, config in GENE_SELECTION_OPTIONS.items():
+        if selected_gene_selection == option:
+            st.sidebar.text_area(
+                config["input_label"],
+                placeholder=config["placeholder"],
+                key="input_genes",
+                value = st.session_state.input_genes,
+                on_change=lambda: st.session_state.update({"input_genes": st.session_state.input_genes})  # Update session state on change
+            )
+            st.session_state.gene_input_type = config["key"]
+
+    selected_columns = st.sidebar.multiselect(
+        "Select columns to display:", ALL_COLUMNS, default=ALL_COLUMNS)
 
 def parse_multi_input(text_input):
     """
@@ -20,147 +77,92 @@ def parse_multi_input(text_input):
     # Return unique tokens
     return list(set(tokens))
 
-def build_combined_table(genes):
-    """
-    Takes a list of Gene objects (with joined relationships)
-    and returns a DataFrame where each row corresponds to one Gene+Annotation combo,
-    with columns for all relevant data (Gene, Annotation, GO, Enzyme, InterPro, etc.).
-    """
-    rows = []
-    for g in genes:
-        if not g.annotations:
-            # No annotation => store minimal gene info
-            rows.append({
-                "Gene ID": g.id,
-                "Gene Name": g.gene_name,
-                "Species": g.species.name if g.species else None,
-                "Annotation Description": None,
-                "Annotation e-value": None,
-                "Arab. Locus": g.arabidopsis_homologues.a_thaliana_locus ,
-                "Arab. Common Name": g.arabidopsis_homologues.a_thaliana_common_name ,
-                "GO Terms": None,
-                "Enzyme Codes": None,
-                "InterPro IDs": None,
-            })
-        else:
-            for ann in g.annotations:
-                go_list = [f"{go.go_id}({go.go_name})" for go in ann.go_ids]  
-                enz_list = [f"{ec.enzyme_code}({ec.enzyme_name})" for ec in ann.enzyme_codes]
-                ipr_list = [f"{ip.interpro_id}({ip.interpro_go_name})" for ip in ann.interpro_ids]
 
-                row = {
-                    "Gene ID": g.id,
-                    "Gene Name": g.gene_name,
-                    "Species": g.species.name if g.species else None,
-                    "Annotation Description": ann.description,
-                    "Annotation e-value": ann.e_value,
-                     "Arab. Locus": g.arabidopsis_homologues.a_thaliana_locus ,
-                    "Arab. Common Name": g.arabidopsis_homologues.a_thaliana_common_name ,
-                    "GO Terms": "; ".join(go_list) if go_list else None,
-                    "Enzyme Codes": "; ".join(enz_list) if enz_list else None,
-                    "InterPro IDs": "; ".join(ipr_list) if ipr_list else None,
-                }
-                rows.append(row)
-
-    df = pd.DataFrame(rows)
-    df.drop_duplicates(inplace=True)
-    return df
+def map_gene_selection():
+    """
+    Maps the gene selection method to the appropriate function.
+    """
+    gene_selection = {
+        "Xerophyta GeneID": "xerophyta",
+        "Arabidopsis ortholog": "arabidopsis",
+        "Genes with GO term": "go_term"
+    }
+    return gene_selection[st.session_state.gene_selection]
 
 
 def main():
-    st.title("Xerophyta Database Explorer")
-    st.sidebar.header("Search Inputs")
-    database = db.DB()
+    initialise_session_state()
+    setup_sidebar()
 
-    # Species selection
-    species_list = database.get_species()
-    species_options = ["(Any)"] + [sp.name for sp in species_list]
-    selected_species = st.sidebar.selectbox("Select Species (optional):", species_options)
-
-    # Query inputs
-    xero_gene_input = st.sidebar.text_area("Xerophyta Gene Names:")
-    arab_gene_input = st.sidebar.text_area("Arabidopsis Genes/Loci:")
-    advanced_input = st.sidebar.text_area("GO Terms, Enzyme Codes, InterPro IDs:")
-
-    all_columns = [
-            "Gene ID",
-            "Gene Name",
-            "Species",
-            "Annotation Description",
-            "Annotation e-value",
-            "Arab. Locus",
-            "Arab. Common Name",
-            "GO Terms",
-            "Enzyme Codes",
-            "InterPro IDs"
-        ]
-    selected_columns = st.sidebar.multiselect(
-        "Select columns to display:", all_columns, default=all_columns
-    )
-
+    
     if st.sidebar.button("Run Query"):
-        xero_genes = parse_multi_input(xero_gene_input)
-        arab_genes = parse_multi_input(arab_gene_input)
-        adv_terms = parse_multi_input(advanced_input)
+        st.session_state.run_query = True
+    
+    if st.session_state.run_query:
+        input_genes = st.session_state.input_genes
 
-        results = database.query_genes_by_all(selected_species, xero_genes, arab_genes, adv_terms)
-        df = build_combined_table(results)
-        
+        if input_genes:
+            gene_selection = map_gene_selection()
+            selected_species = st.session_state.species
+            st.write(st.session_state)
+            results = database.get_gene_annotation_data(input_genes, "xerophyta_gene_name",selected_species)
+            df = pd.DataFrame(results)
+            st.dataframe(df)        
 
-        st.subheader("Search Results")
-        st.write(f"Found {len(results)} gene(s).")
-        st.dataframe(df[selected_columns], use_container_width=True)
+            st.subheader("Search Results")
+            st.write(f"Found {len(results)} gene(s).")
+            # st.dataframe(df[selected_columns], use_container_width=True)
 
-        #-------------------------
-        # DOWNLOAD BUTTONS
-        #-------------------------
-        col1, col2 = st.columns(2)
-        
-        # Download gene data button
-        csv_data = df.to_csv(index=False)
-        timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        file_name = f"Xerophyta_gene_query_results_{timestamp_str}.csv"
-        
-        with col1:
-            st.download_button(
-                label="Download Results as CSV",
-                data=csv_data,
-                file_name=file_name,
-                mime="text/csv"
-            )
-
-        # Download FASTA button
-        fasta_entries = []
-        for g in results:
-            # Let’s assume each Gene has .coding_sequence
-            seq = g.coding_sequence or ""
-            # We'll use the first annotation's description if it exists.
-            # If your real models have multiple annotations, adapt the logic below:
+            #-------------------------
+            # DOWNLOAD BUTTONS
+            #-------------------------
+            col1, col2 = st.columns(2)
             
-            # TODO add the descripton to the file name, or add the Arabidopsis homologue
-            # desc = g.annotation_description or "No Description"
+            # Download gene data button
+            csv_data = df.to_csv(index=False)
+            timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            file_name = f"Xerophyta_gene_query_results_{timestamp_str}.csv"
+            
+            with col1:
+                st.download_button(
+                    label="Download Results as CSV",
+                    data=csv_data,
+                    file_name=file_name,
+                    mime="text/csv"
+                )
 
-            # FASTA header: >GeneName description
-            header = f">{g.gene_name}"
+            # Download FASTA button
+            fasta_entries = []
+            for g in results:
+                # Let’s assume each Gene has .coding_sequence
+                seq = g.coding_sequence or ""
+                # We'll use the first annotation's description if it exists.
+                # If your real models have multiple annotations, adapt the logic below:
+                
+                # TODO add the descripton to the file name, or add the Arabidopsis homologue
+                # desc = g.annotation_description or "No Description"
 
-            # Build the FASTA entry (header + sequence)
-            fasta_entries.append(header)
-            fasta_entries.append(seq)  # on the next line
+                # FASTA header: >GeneName description
+                header = f">{g.gene_name}"
 
-        # Join everything with newlines
-        fasta_str = "\n".join(fasta_entries)
+                # Build the FASTA entry (header + sequence)
+                fasta_entries.append(header)
+                fasta_entries.append(seq)  # on the next line
 
-        
-        timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        fasta_filename = f"Xerophyta_genes_{timestamp_str}.fasta"
+            # Join everything with newlines
+            fasta_str = "\n".join(fasta_entries)
 
-        with col2:
-            st.download_button(
-                label="Download FASTA with coding sequences",
-                data=fasta_str,
-                file_name=fasta_filename,
-                mime="text/plain",  # or "text/fasta"
-            )
+            
+            timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            fasta_filename = f"Xerophyta_genes_{timestamp_str}.fasta"
+
+            with col2:
+                st.download_button(
+                    label="Download FASTA with coding sequences",
+                    data=fasta_str,
+                    file_name=fasta_filename,
+                    mime="text/plain",  # or "text/fasta"
+                )
 
 
 def instruction_page():

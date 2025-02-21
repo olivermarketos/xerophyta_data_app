@@ -1,8 +1,9 @@
 import sqlalchemy as sq
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, joinedload, subqueryload
 import database.models as models 
 import pandas as pd
 from sqlalchemy import or_, func
+
 from sqlalchemy.exc import SQLAlchemyError
 from utils.constants import DEGFilter
 
@@ -288,7 +289,7 @@ class DB():
             )
         return query.all()
     
-    def get_gene_annotation_data(self, gene_list, query_type):
+    def get_gene_annotation_data(self, gene_list, query_type, species_name= "Any"):
         """Get annotation data associated with a list of Xerophyta gene names, GO terms or arabidopsis homologes (locus or common name).
 
         Args:
@@ -298,6 +299,7 @@ class DB():
         Returns:
             _type_: _description_
         """
+        #TODO add species filter
         # ensure its a list
         if isinstance(gene_list, str):
             gene_list = [gene_list]
@@ -314,6 +316,22 @@ class DB():
 
     def get_gene_annotation_data_from_xerophyta_gene_names(self, gene_list):
 
+        results = (
+            self.session.query(models.Gene)
+            .options(
+                subqueryload(models.Gene.annotations)
+                    .subqueryload(models.Annotation.go_ids),
+                subqueryload(models.Gene.annotations)
+                    .subqueryload(models.Annotation.enzyme_codes),
+                subqueryload(models.Gene.annotations)
+                    .subqueryload(models.Annotation.interpro_ids),
+                subqueryload(models.Gene.arabidopsis_homologues)
+            )
+            .filter(models.Gene.gene_name.in_(gene_list))
+            .all()
+        )
+        return results
+        
         query = (
             self.session.query(
                 models.Gene.id.label("gene_id"),
@@ -322,7 +340,7 @@ class DB():
                 models.ArabidopsisHomologue.a_thaliana_locus,
                 models.ArabidopsisHomologue.a_thaliana_common_name,
 
-                # models.Gene.coding_sequence,
+                models.Gene.coding_sequence,
 
                 models.Annotation.description,
                 models.Annotation.e_value,
@@ -350,9 +368,57 @@ class DB():
                 .filter(models.Gene.gene_name.in_(gene_list))
 
         )
-        results = query.all()
-
+        results = query.distinct()
         return results
+
+        genes = (
+            self.session.query(models.Gene)
+            .filter(models.Gene.gene_name.in_(gene_list))
+            .options(
+                joinedload(models.Gene.annotations).joinedload(models.Annotation.go_ids),
+                joinedload(models.Gene.annotations).joinedload(models.Annotation.enzyme_codes),
+                joinedload(models.Gene.annotations).joinedload(models.Annotation.interpro_ids),
+                joinedload(models.Gene.arabidopsis_homologues),
+                joinedload(models.Gene.species)
+            )
+            .all()
+        )
+    
+        # 2) Build a row per Gene
+        rows = []
+        for g in genes:
+            row = {
+                "gene_id": g.id,
+                "species_name": g.species.name if g.species else None,
+                "gene_name": g.gene_name,
+                "coding_sequence": g.coding_sequence,
+                # Collect all homologue data in a list of dicts or just a list of locus
+                "homologues": [h.a_thaliana_locus for h in g.arabidopsis_homologues],
+            }
+            
+            # For all annotations, gather GO, enzyme, interpro
+            go_ids = set()
+            enzyme_codes = set()
+            interpro_ids = set()
+            
+            for ann in g.annotations:
+                # basic annotation info
+                # (optionally store in row if you want e_value, etc.)
+                
+                for go in ann.go_ids:
+                    go_ids.add(go.go_id)
+                for ec in ann.enzyme_codes:
+                    enzyme_codes.add(ec.enzyme_code)
+                for ip in ann.interpro_ids:
+                    interpro_ids.add(ip.interpro_id)
+            
+            row["go_list"] = list(go_ids)
+            row["enzyme_list"] = list(enzyme_codes)
+            row["interpro_list"] = list(interpro_ids)
+            
+            rows.append(row)
+        
+        return rows
         # results = []
         # for gene in gene_list:
         #     query = self.session.query(models.Gene).filter_by(gene_name=gene).first()

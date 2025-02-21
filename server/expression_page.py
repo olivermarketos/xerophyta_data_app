@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import  database.db as db
 import utils.plots as plots
-from utils.constants import DEGFilter
+from utils.constants import DEGFilter, GENE_SELECTION_OPTIONS, DEG_FILTER_OPTIONS
 
 
 
@@ -14,31 +14,6 @@ st.divider()
 database = db.DB()
 EXPRESSION_PLOT_OPTIONS = ["log2_expression", "normalised_expression"]
 PLOT_DISPLAY_OPTIONS = ["Genes on single plot", "Genes on separate plot"]
-# Map frontend options to DEGFilter values
-DEG_FILTER_OPTIONS = {
-    "Show all genes": DEGFilter.SHOW_ALL,
-    "Show all differentially expressed genes": DEGFilter.SHOW_DEG,
-    "Show only up-regulated genes": DEGFilter.SHOW_UP,
-    "Show only down-regulated genes": DEGFilter.SHOW_DOWN,
-}
-
-GENE_SELECTION_OPTIONS = {
-    "Xerophyta GeneID": {
-        "placeholder": "Xele.ptg000001l.1, Xele.ptg000001l.116",
-        "key": "Gene_ID",
-        "input_label": "Enter Xerophyta GeneIDs separated by commas, space or newline:"
-    },
-    "Arabidopsis ortholog": {
-        "placeholder": "At4g32010, OXA1",
-        "key": "Arab_homolog",
-        "input_label": "Enter Arabidopsis orthologues separated by commas, space or newline:"
-    },
-    "Genes with GO term": {
-        "key": "GO_term",
-        "placeholder": "immune system process, leaf senescence, GO:0005515",
-        "input_label": "Enter GO term description or ID (GO:xxx) separated by commas or newline:"
-    }
-}
 
 
 def initialise_session_state():
