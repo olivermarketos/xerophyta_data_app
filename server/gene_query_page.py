@@ -118,10 +118,11 @@ def main():
             
                 if annotation_data:
                     matched_input = {gene.gene_name.lower() for gene in annotation_data}
+                    st.write(f"matched input: {matched_input}")
                 else:
                     matched_input = set()
                 missing_input = {gene for gene in input_genes if gene.lower() not in matched_input}
-
+                st.write(f"missing input {missing_input}")
 
             elif st.session_state.gene_input_type == "Arab_loci":
                 annotation_data = database.get_gene_annotation_data(input_genes, "a_thaliana_locus",selected_species)

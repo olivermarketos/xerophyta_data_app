@@ -248,46 +248,7 @@ class DB():
         query = self.session.query(models.Gene).filter_by(gene_name=gene_name).first()
         return query
     
-    def query_genes_by_all(self, species, xero_genes, arab_genes, adv_terms):
-        query = (
-            self.session.query(models.Gene)
-            .outerjoin(models.Species)
-            .outerjoin(models.Gene.annotations)
-            .outerjoin(models.Annotation.go_ids)
-            .outerjoin(models.Annotation.enzyme_codes)
-            .outerjoin(models.Annotation.interpro_ids)
-            .outerjoin(models.Gene.arabidopsis_homologues)
-            .distinct()
-        )
-
-        if species:
-            query = query.filter(models.Species.name == species)
-
-        if xero_genes:
-            query = query.filter(or_(*[models.Gene.gene_name.ilike(f"{g}") for g in xero_genes]))
-
-        # TODO implement once At genes added to db
-        if arab_genes:
-            query = query.filter(or_(*[
-                                    models.ArabidopsisHomologue.a_thaliana_locus.ilike(f"{g}") |
-                                    models.ArabidopsisHomologue.a_thaliana_common_name.ilike(f"{g}")
-                                      for g in arab_genes]))
-
-        if adv_terms:
-            query = query.filter(
-                or_(
-                    *[
-                        models.GO.go_id.ilike(f"%{t}%") |
-                        models.GO.go_name.ilike(f"%{t}%") |
-                        models.EnzymeCode.enzyme_code.ilike(f"%{t}%") |
-                        models.EnzymeCode.enzyme_name.ilike(f"%{t}%") |
-                        models.InterPro.interpro_id.ilike(f"%{t}%") |
-                        models.InterPro.interpro_go_name.ilike(f"%{t}%")
-                        for t in adv_terms
-                    ]
-                )
-            )
-        return query.all()
+    
     
     def get_gene_annotation_data(self, gene_list, query_type, species_name= "Any"):
         """Get annotation data associated with a list of Xerophyta gene names, GO terms or arabidopsis homologes (locus or common name).
@@ -341,6 +302,7 @@ class DB():
             .all()
         )
         return results
+    
     def get_gene_annotation_data_from_a_thaliana_locus_homologue(self, gene_list):
         
         results = (
@@ -377,22 +339,39 @@ class DB():
                 .distinct()
         )
         return results.all()
+            
+    def get_gene_annotation_data_from_go_terms(self, go_terms):
+        return
     
-        
-        
+      
     def flatten_gene_annotation_data(self, gene_annotations):
         data = []
-        for gene in gene_annotations:
+        print("----------")
+
+        for gene in gene_annotations: 
+            print(f"gene {gene}")  
             species = gene.species.name 
             gene_name=gene.gene_name
             coding_sequence = gene.coding_sequence
+            
             a_thaliana_locus = None
             a_thaliana_common_name = None
+            description= None
+            e_value= None
+            bit_score= None
+            similarity= None
+            alignment_length= None
+            positives= None
+            go_ids= None
+            go_names= None
+            enzyme_codes= None
+            enzyme_names= None
+            interpro_ids= None
 
             for homologue in gene.arabidopsis_homologues:
                 a_thaliana_locus = homologue.a_thaliana_locus
                 a_thaliana_common_name = homologue.a_thaliana_common_name
-
+            
             for annotation in gene.annotations:
                 description = annotation.description
                 e_value = annotation.e_value
@@ -409,29 +388,27 @@ class DB():
             
                 interpro_ids = ", ".join([interpro.interpro_id for interpro in annotation.interpro_ids])
 
-                data.append({
-                    "species": species,
-                    "gene_name": gene_name,
-                    "a_thaliana_locus": a_thaliana_locus,
-                    "a_thaliana_common_name": a_thaliana_common_name,
-                    "description": description,
-                    "coding_sequence": coding_sequence,
-                    "e_value": e_value,
-                    "bit_score": bit_score,
-                    "similarity": similarity,
-                    "alignment_length": alignment_length,
-                    "positives": positives,
-                    "go_ids": go_ids,
-                    "go_names": go_names,
-                    "enzyme_codes": enzyme_codes,
-                    "enzyme_names": enzyme_names,
-                    "interpro_ids": interpro_ids
-                })
+            data.append({
+                "species": species,
+                "gene_name": gene_name,
+                "a_thaliana_locus": a_thaliana_locus,
+                "a_thaliana_common_name": a_thaliana_common_name,
+                "description": description,
+                "coding_sequence": coding_sequence,
+                "e_value": e_value,
+                "bit_score": bit_score,
+                "similarity": similarity,
+                "alignment_length": alignment_length,
+                "positives": positives,
+                "go_ids": go_ids,
+                "go_names": go_names,
+                "enzyme_codes": enzyme_codes,
+                "enzyme_names": enzyme_names,
+                "interpro_ids": interpro_ids
+            })
+               
         return data
-    
-    def get_gene_annotation_data_from_go_terms(self, go_terms):
-        return
-    
+       
     
     def get_species_by_name(self, species_name):  
         """Retrieve a species object by its name.
