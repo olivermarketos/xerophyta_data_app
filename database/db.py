@@ -260,8 +260,7 @@ class DB():
         Returns:
             _type_: _description_
         """
-        #TODO add species filter
-        # ensure its a list
+     
         if isinstance(gene_list, str):
             gene_list = [gene_list]
 
@@ -309,7 +308,7 @@ class DB():
 
     def get_gene_annotation_data_from_xerophyta_gene_names(self, gene_list, species_id=None):
 
-        results = (
+        query = (
             self.session.query(models.Gene)
             .options(
                 subqueryload(models.Gene.annotations)
@@ -321,9 +320,11 @@ class DB():
                 subqueryload(models.Gene.arabidopsis_homologues)
             )
             .filter(models.Gene.gene_name.in_(gene_list))
-            .all()
         )
-        return results
+
+        if species_id is not None:
+            query = query.filter(models.Gene.species_id == species_id)
+        return query.all()     
     
     def get_gene_annotation_data_from_a_thaliana_locus_homologue(self, gene_list, species_id=None):
         
@@ -410,12 +411,11 @@ class DB():
         return query.all()
     
     def get_gene_annotation_data_from_enzyme_names(self, enzyme_name_list, species_id=None):
+        
         filters = [
             models.EnzymeCode.enzyme_name.ilike(f"%{term}%") 
             for term in enzyme_name_list 
             ]
-        print(filters)
-        # Query Genes by joining with the homologues table and filtering with an OR condition
         query = (
             self.session.query(models.Gene)
                 .join(models.Gene.annotations)

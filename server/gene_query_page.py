@@ -92,11 +92,9 @@ def main():
             
                 if annotation_data:
                     matched_input = {gene.gene_name.lower() for gene in annotation_data}
-                    st.write(f"matched input: {matched_input}")
                 else:
                     matched_input = set()
                 missing_input = {gene for gene in input_genes if gene.lower() not in matched_input}
-                st.write(f"missing input {missing_input}")
 
             elif st.session_state.gene_input_type == "Arab_loci":
                 annotation_data = database.get_gene_annotation_data(input_genes, "a_thaliana_locus",selected_species)
@@ -179,7 +177,19 @@ def main():
             
             elif st.session_state.gene_input_type == "EC_name":
                 annotation_data = database.get_gene_annotation_data(input_genes, "enzyme_name",selected_species)
-                
+                if annotation_data:
+                    for gene in annotation_data:
+                        for annotation in gene.annotations:
+                            # iterate over GO objects via the go_ids relationship
+                            for enzyme in annotation.enzyme_codes:
+                                # Ensure go.go_name exists and normalize it to lowercase
+                                enzyme_name = enzyme.enzyme_name.lower() if enzyme.enzyme_name else ""
+                                for term in input_genes:
+                                    # Check if the lowercase search term is in the GO name
+                                    if term.lower() in enzyme_name:
+                                        matched_input.add(term)
+                missing_input = [term for term in input_genes if term.lower() not in {m.lower() for m in matched_input}]
+
                
 
             results= database.flatten_gene_annotation_data(annotation_data)
@@ -287,6 +297,17 @@ def instruction_page():
             - All genes returned will have at least one annotation with a matching GO term.
             > __note__: search terms are case-insensitive and partial matches are allowed and large queries may take longer to process.
                     
+        7. **Query by Enzyme Code:**
+            - Enter one or more enzyme codes, separated by commas or newlines.
+            - e.g. EC:1.15.1.1, EC:1.2.3.4
+            - All genes returned will have at least one annotation with a matching enzyme code.
+
+        8. **Query by Enzyme Name:**
+            - Enter one or more enzyme names, separated by commas or newlines.
+            - e.g. NAD(+) glycohydrolase, oxalate oxidase
+            - All genes returned will have at least one annotation with a matching enzyme name.
+            > __note__: search terms are case-insensitive, partial matches are allowed and large queries may take longer to process.
+            
         8. **Run Query:**
             - Click the "Run Query" button to retrieve the gene annotation information based on the input provided.
         
