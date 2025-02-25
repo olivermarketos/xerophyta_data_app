@@ -86,7 +86,6 @@ def main():
     initialise_session_state()
     setup_sidebar()
     instruction_page()
-    st.write(st.session_state)
     if st.sidebar.button("Run Query"):
         st.session_state.run_query = True
     
