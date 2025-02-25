@@ -5,8 +5,7 @@ import matplotlib.pyplot as plt
 import  database.db as db
 import utils.plots as plots
 from utils.constants import DEGFilter, GENE_SELECTION_OPTIONS, DEG_FILTER_OPTIONS
-
-
+from utils.helper_functions import parse_input 
 
 st.title('Xerophyta Data Explorer')
 st.divider()
@@ -78,32 +77,6 @@ def show_raw_data(data):
     df = data[[  "gene_name", "log2_expression", "normalised_expression", "treatment", "time",  "replicate"]]
     st.dataframe(df)
 
-
-
-def process_input_genes(input_genes):
-    """
-    Splits the user's input (comma, space, newline) into a list of unique, non-empty strings.
-    """
-    if not input_genes.strip():
-        return []
-    # Replace commas/newlines with spaces
-    cleaned = input_genes.replace(",", " ").replace("\n", " ")
-    # Split on whitespace
-    tokens = [t.strip() for t in cleaned.split(" ") if t.strip()]
-    # Return unique tokens
-    return list(set(tokens))
-
-def process_go_input(input_go_terms):
-    """
-    Splits the user's input (comma, newline) into a list of unique, non-empty strings.
-    """
-    if not input_go_terms.strip():
-        return []
-    # Replace commas/newlines with spaces
-    cleaned = input_go_terms.replace("\n", ",")
-    # Split on whitespace
-    terms = list(set(term.strip() for term in cleaned.split(",") if term.strip()))
-    return terms
 
 def map_gene_selection():
     """
@@ -184,7 +157,7 @@ def main():
             gene_selection = map_gene_selection()
 
             if gene_selection == "xerophyta":
-                input_genes = process_input_genes(input_genes)
+                input_genes = parse_input(input_genes)
                 in_database = database.check_if_gene_in_database(input_genes)
                 genes_in_db = []
                 genes_not_in_db = []
@@ -216,7 +189,7 @@ def main():
                 pass
 
             elif gene_selection == "go_term":
-                input_gos = process_go_input(st.session_state.input_genes)
+                input_gos = parse_input(st.session_state.input_genes)
                 genes = database.get_genes_by_go_term_or_description(input_gos, st.session_state.species)
                 if genes is None:
                     st.warning(f"No genes found for GO term: {input_genes}")

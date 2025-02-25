@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime 
 import database.db as db  # Your custom db module
 from utils.constants import GENE_SELECTION_OPTIONS
+from utils.helper_functions import parse_input
 
 st.title("Xerophyta Database Explorer")
 st.divider()
@@ -66,19 +67,6 @@ def setup_sidebar():
         default=ALL_COLUMNS,
         key="selected_columns")
 
-def parse_multi_input(text_input):
-    """
-    Splits the user's input (comma, space, newline) into a list of unique, non-empty strings.
-    """
-    if not text_input.strip():
-        return []
-    # Replace commas/newlines with spaces
-    cleaned = text_input.replace("\n", ",")
-    # Split on whitespace
-    tokens = [t.strip() for t in cleaned.split(",") if t.strip()]
-    # Return unique tokens
-    return list(set(tokens))
-
 
 def map_gene_selection():
     """
@@ -108,7 +96,7 @@ def main():
         if input_genes:
             gene_selection = map_gene_selection()
             selected_species = st.session_state.species
-            input_genes = parse_multi_input(input_genes)
+            input_genes = parse_input(input_genes)
 
             annotation_data = []
             matched_input = set()
