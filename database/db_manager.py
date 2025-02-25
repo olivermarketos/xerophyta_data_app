@@ -1,9 +1,9 @@
 import re
 from Bio import SeqIO
-import models as models
+import database.models as models
 import os
 import sqlalchemy as sq
-import db as db
+import database.db as db
 import pandas as pd
 
 # DATABASE_NAME = "xerophyta_db.sqlite"
