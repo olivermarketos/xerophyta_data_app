@@ -73,9 +73,9 @@ def parse_multi_input(text_input):
     if not text_input.strip():
         return []
     # Replace commas/newlines with spaces
-    cleaned = text_input.replace(",", " ").replace("\n", " ")
+    cleaned = text_input.replace("\n", ",")
     # Split on whitespace
-    tokens = [t.strip() for t in cleaned.split(" ") if t.strip()]
+    tokens = [t.strip() for t in cleaned.split(",") if t.strip()]
     # Return unique tokens
     return list(set(tokens))
 
@@ -98,7 +98,7 @@ def main():
     initialise_session_state()
     setup_sidebar()
     instruction_page()
-    
+    st.write(st.session_state)
     if st.sidebar.button("Run Query"):
         st.session_state.run_query = True
     
