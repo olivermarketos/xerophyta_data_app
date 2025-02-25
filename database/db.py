@@ -265,39 +265,49 @@ class DB():
         if isinstance(gene_list, str):
             gene_list = [gene_list]
 
+        if species_name == "Any":
+            species_id = None
+        else:
+            species_id = self.get_species_by_name(species_name).id
+
         results = []
         if query_type == "xerophyta_gene_name":
-            results = self.get_gene_annotation_data_from_xerophyta_gene_names(gene_list)
+            results = self.get_gene_annotation_data_from_xerophyta_gene_names(gene_list, species_id)
         
         elif query_type == "a_thaliana_locus":
-            loci_results = self.get_gene_annotation_data_from_a_thaliana_locus_homologue(gene_list)
+            loci_results = self.get_gene_annotation_data_from_a_thaliana_locus_homologue(gene_list, species_id)
             genes = [gene.gene_name for gene in loci_results]
             results = self.get_gene_annotation_data_from_xerophyta_gene_names(genes)
 
         elif query_type == "a_thaliana_common_name":
-            common_name_results = self.get_gene_annotation_data_from_a_thaliana_common_name(gene_list)
+            common_name_results = self.get_gene_annotation_data_from_a_thaliana_common_name(gene_list, species_id)
             genes = [gene.gene_name for gene in common_name_results]
             results = self.get_gene_annotation_data_from_xerophyta_gene_names(genes)
 
         elif query_type == "go_id":
-            go_term_results = self.get_gene_annotation_data_from_go_ids(gene_list)
+            go_term_results = self.get_gene_annotation_data_from_go_ids(gene_list, species_id)
             genes = [gene.gene_name for gene in go_term_results]
-            results = self.get_gene_annotation_data_from_xerophyta_gene_names(genes)
+            results = self.get_gene_annotation_data_from_xerophyta_gene_names(genes, species_id)
 
         elif query_type == "go_name":
-            go_term_results = self.get_gene_annotation_data_from_go_names(gene_list)
+            go_term_results = self.get_gene_annotation_data_from_go_names(gene_list, species_id)
             genes = [gene.gene_name for gene in go_term_results]
-            results = self.get_gene_annotation_data_from_xerophyta_gene_names(genes)
+            results = self.get_gene_annotation_data_from_xerophyta_gene_names(genes, species_id)
 
 
         elif query_type == "enzyme_code":
-            enzyme_results = self.get_gene_annotation_data_from_enzyme_codes(gene_list)
+            enzyme_results = self.get_gene_annotation_data_from_enzyme_codes(gene_list, species_id)
+            genes = [gene.gene_name for gene in enzyme_results]
+            results = self.get_gene_annotation_data_from_xerophyta_gene_names(genes)
+
+        elif query_type == "enzyme_name":
+            enzyme_results = self.get_gene_annotation_data_from_enzyme_names(gene_list, species_id)
             genes = [gene.gene_name for gene in enzyme_results]
             results = self.get_gene_annotation_data_from_xerophyta_gene_names(genes)
 
         return results
 
-    def get_gene_annotation_data_from_xerophyta_gene_names(self, gene_list):
+    def get_gene_annotation_data_from_xerophyta_gene_names(self, gene_list, species_id=None):
 
         results = (
             self.session.query(models.Gene)
@@ -315,19 +325,20 @@ class DB():
         )
         return results
     
-    def get_gene_annotation_data_from_a_thaliana_locus_homologue(self, gene_list):
+    def get_gene_annotation_data_from_a_thaliana_locus_homologue(self, gene_list, species_id=None):
         
-        results = (
+        query = (
             self.session.query(models.Gene)
             .join(models.Gene.arabidopsis_homologues)
             .filter(
                 func.lower(models.ArabidopsisHomologue.a_thaliana_locus)
                 .in_([locus.lower() for locus in gene_list]))
-            .all()
         )
-        return results
+        if species_id is not None:
+            query = query.filter(models.Gene.species_id == species_id)
+        return query.all()        
     
-    def get_gene_annotation_data_from_a_thaliana_common_name(self, gene_list):
+    def get_gene_annotation_data_from_a_thaliana_common_name(self, gene_list, species_id=None):
         """
             Search for genes based on partial matches of the Arabidopsis common names.
             
@@ -344,55 +355,79 @@ class DB():
                 ]
     
         # Query Genes by joining with the homologues table and filtering with an OR condition
-        results = (
+        query = (
             self.session.query(models.Gene)
                 .join(models.Gene.arabidopsis_homologues)
                 .filter(or_(*filters))
                 .distinct()
         )
-        return results.all()
-            
-    def get_gene_annotation_data_from_go_ids(self, go_list):
+        if species_id is not None:
+            query = query.filter(models.Gene.species_id == species_id)
+        return query.all()    
+                
+    def get_gene_annotation_data_from_go_ids(self, go_list, species_id=None):
         # Normalize the GO terms provided by the user.
         normalized_go_list = [self.normalize_go_term(go) for go in go_list]
 
         # Use lower for case-insensitive matching
-        results = (
+        query = (
             self.session.query(models.Gene)
             .join(models.Gene.annotations)
             .join(models.Annotation.go_ids)
             .filter(func.lower(models.GO.go_id).like(f"%{normalized_go_list[0].lower()}"))
             .distinct()
-            .all()
         )
-        return results
+        if species_id is not None:
+            query = query.filter(models.Gene.species_id == species_id)
+        return query.all()        
     
-    def get_gene_annotation_data_from_go_names(self, go_name_list):
+    def get_gene_annotation_data_from_go_names(self, go_name_list, species_id=None):
         filters = [
             models.GO.go_name.ilike(f"%{name}%") for name in go_name_list
         ]
-        results = (
+        query = (
             self.session.query(models.Gene)
             .join(models.Gene.annotations)
             .join(models.Annotation.go_ids)
             .filter(or_(*filters))
             .distinct()
-            .all()
         )
-        return results
+        if species_id is not None:
+            query = query.filter(models.Gene.species_id == species_id)
+        return query.all()    
     
-    def get_gene_annotation_data_from_enzyme_codes(self, enzyme_code_list):
-        results = (
+    def get_gene_annotation_data_from_enzyme_codes(self, enzyme_code_list, species_id=None):
+        query = (
             self.session.query(models.Gene)
             .join(models.Gene.annotations)
             .join(models.Annotation.enzyme_codes)
             .filter(func.lower(models.EnzymeCode.enzyme_code)
             .in_([enzyme_code.lower() for enzyme_code in enzyme_code_list]))
             .distinct()
-            .all()
         )
-        return results
+        if species_id is not None:
+            query = query.filter(models.Gene.species_id == species_id)
+        return query.all()
     
+    def get_gene_annotation_data_from_enzyme_names(self, enzyme_name_list, species_id=None):
+        filters = [
+            models.EnzymeCode.enzyme_name.ilike(f"%{term}%") 
+            for term in enzyme_name_list 
+            ]
+        print(filters)
+        # Query Genes by joining with the homologues table and filtering with an OR condition
+        query = (
+            self.session.query(models.Gene)
+                .join(models.Gene.annotations)
+                .join(models.Annotation.enzyme_codes)
+                .filter(or_(*filters))
+                .distinct()
+        )
+        if species_id is not None:
+            query = query.filter(models.Gene.species_id == species_id)
+        
+        return query.all()
+
     def normalize_go_term(self, go_term):
         """
         Extracts the GO term from a string.

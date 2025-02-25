@@ -65,21 +65,6 @@ def setup_sidebar():
         key="selected_columns")
 
 
-def map_gene_selection():
-    """
-    Maps the gene selection method to the appropriate function.
-    """
-    gene_selection = {
-        "Xerophyta GeneID": "xerophyta",
-        "Arabidopsis homologue locus": "a_thaliana_locus",
-        "Arabidopsis homologue common name": "a_thaliana_common_name",
-        "Genes with GO id": "go_id",
-        "Genes with GO name": "go_name",
-        "Genes with Enzyme Code": "enzyme_code"
-    }
-    return gene_selection[st.session_state.gene_selection]
-
-
 
 
 def main():
@@ -96,7 +81,6 @@ def main():
         input_genes = st.session_state.input_genes
 
         if input_genes:
-            gene_selection = map_gene_selection()
             selected_species = st.session_state.species
             input_genes = parse_input(input_genes)
 
@@ -138,7 +122,7 @@ def main():
                                 if term.lower() in common_name:
                                     matched_input.add(term)
 
-                    missing_input = [term for term in input_genes if term not in matched_input]
+                missing_input = [term for term in input_genes if term not in matched_input]
 
             elif st.session_state.gene_input_type == "GO_id":
                 annotation_data = database.get_gene_annotation_data(input_genes, "go_id",selected_species)
@@ -173,7 +157,7 @@ def main():
                                     # Check if the lowercase search term is in the GO name
                                     if term.lower() in go_name:
                                         matched_input.add(term)
-                    missing_input = [term for term in input_genes if term.lower() not in {m.lower() for m in matched_input}]
+                missing_input = [term for term in input_genes if term.lower() not in {m.lower() for m in matched_input}]
 
             elif st.session_state.gene_input_type == "EC_code":
                 annotation_data = database.get_gene_annotation_data(input_genes, "enzyme_code",selected_species)
@@ -192,7 +176,11 @@ def main():
                 else:
                     matched_input = set()
                 missing_input = normalized_inputs - matched_input
-
+            
+            elif st.session_state.gene_input_type == "EC_name":
+                annotation_data = database.get_gene_annotation_data(input_genes, "enzyme_name",selected_species)
+                
+               
 
             results= database.flatten_gene_annotation_data(annotation_data)
             df = pd.DataFrame(results)

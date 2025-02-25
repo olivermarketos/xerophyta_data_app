@@ -66,6 +66,11 @@ GENE_ANNOTATION_SELECTION_OPTIONS = {
         "key": "EC_code",
         "placeholder": "EC:3.2.2.5, EC:2.7.1.94",
         "input_label": "Enter enzyme codes separated by commas or newline:"
+    },
+    "Genes with Enzyme Name": {
+        "key": "EC_name",
+        "placeholder": "NAD(+) glycohydrolase, oxalate oxidase",
+        "input_label": "Enter enzyme names separated by commas or newline:"
     }
 
 }
