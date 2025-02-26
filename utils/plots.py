@@ -11,61 +11,6 @@ mpl.rcParams['ytick.labelsize'] = 14
 
 
 
-def test_multi_panel_gene_expression(df):
-    
-    figures = []
-    grouped = df.groupby(['gene_name', 'treatment'])
-
-    # Iterate over the groups and plot each
-    for (gene, treatment), group in grouped:
-        # Create a new figure for each gene and treatment
-        # fig, ax = plt.subplots(figsize=(8, 6))
-        fig, (ax, ax2) = plt.subplots(1, 2, sharey=True, facecolor='w')
-
-
-        # Plot points for individual replicates
-        ax.scatter(group['time'], group['log2_expression'], label='Replicates', color='blue', alpha=0.6)
-        ax2.scatter(group['time'], group['log2_expression'], label='Replicates', color='blue', alpha=0.6)
-        
-        # Calculate the mean log2_expression for each time
-        avg_group = group.groupby('time').agg({'log2_expression': 'mean'}).reset_index()
-
-        # Plot the average line
-        ax.plot(avg_group['time'], avg_group['log2_expression'], label=f"{gene} ({treatment}) Avg", color='black', marker='o')
-        ax2.plot(avg_group['time'], avg_group['log2_expression'], label=f"{gene} ({treatment}) Avg", color='black', marker='o')
-
-        ax.set_xlim(0, 30)
-        ax2.set_xlim(45, 50)
-
-        ax.spines['right'].set_visible(False)
-        ax2.spines['left'].set_visible(False)
-        ax.yaxis.tick_left()
-        ax.tick_params(labelright='off')
-        ax2.yaxis.tick_right()
-        
-        d = .015  # how big to make the diagonal lines in axes coordinates
-        # arguments to pass plot, just so we don't keep repeating them
-        kwargs = dict(transform=ax.transAxes, color='k', clip_on=False)
-        ax.plot((1-d, 1+d), (-d, +d), **kwargs)
-        #ax.plot((1-d, 1+d), (1-d, 1+d), **kwargs)
-
-        kwargs.update(transform=ax2.transAxes)  # switch to the bottom axes
-        ax2.plot((-d, +d), (-d, +d), **kwargs)
-       
-        # Add labels and title
-        ax.set_xlabel('Treatment Time')
-        ax.set_ylabel('Log2 Expression')
-        ax.set_title(f"Gene: {gene} | {treatment}hydration   ")
-        ax.legend()
-
-        figures.append(fig)
-   
-    return figures
-
-
-   
-
-
 def multi_panel_gene_expression(df, expression_values):
    
     figures = []
@@ -186,4 +131,68 @@ def dual_panel_gene_expression(df, expression_values):
     # Adjust subplots to allocate space for the legend on the right.
     fig.subplots_adjust(right=0.8)
     
+    return fig
+
+def individual_gene_expression(df, expression_values):
+    """
+    Creates a figure with one row per gene. For each gene, the left panel shows the dehydration data
+    and the right panel shows the rehydration data. Each panel plots individual sample points along with 
+    the average line across time.
+    
+    Parameters:
+        df (pd.DataFrame): DataFrame containing columns 'gene_name', 'treatment', 'time', and the 
+                           expression values (e.g., 'log2_expression').
+        expression_values (str): The name of the expression column in df.
+        
+    Returns:
+        fig (matplotlib.figure.Figure): The combined figure.
+    """
+    # Get unique genes
+    genes = df['gene_name'].unique()
+    
+    # Define a fixed treatment order and mapping to full names.
+    # Adjust these if your treatment labels are different.
+    treatment_order = ['De', 'Re']
+    treatment_mapping = {'De': 'Dehydration', 'Re': 'Rehydration'}
+
+    # Set up figure dimensions: two columns for the two treatments and one row per gene.
+    fig_width, fig_height = 5, 4
+    n_rows = len(genes)
+    fig, axs = plt.subplots(n_rows, 2, figsize=(2 * fig_width, n_rows * fig_height), 
+                              sharex=True, sharey=True)
+    
+    # If there's only one gene, force axs to be 2D.
+    if n_rows == 1:
+        axs = np.array([axs])
+    
+    # Loop over genes (rows)
+    for i, gene in enumerate(genes):
+        gene_data = df[df['gene_name'] == gene]
+        
+        # Loop over treatments (columns)
+        for j, treatment in enumerate(treatment_order):
+            ax = axs[i, j]
+            treatment_data = gene_data[gene_data['treatment'] == treatment]
+            
+            if treatment_data.empty:
+                # If no data for this treatment, indicate it.
+                ax.set_title(f"{gene} - {treatment_mapping[treatment]} (No Data)")
+            else:
+                # Plot individual sample points
+                ax.scatter(treatment_data['time'], treatment_data[expression_values], alpha=0.6)
+                
+                # Compute and plot the average expression per time point
+                avg_df = treatment_data.groupby('time', as_index=False).agg({expression_values: 'mean'})
+                ax.plot(avg_df['time'], avg_df[expression_values], marker='o')
+                
+                ax.set_title(f"{gene} - {treatment_mapping[treatment]}")
+                # Set x-ticks based on the unique time points
+                ax.set_xticks(sorted(treatment_data['time'].unique()))
+            
+            ax.set_xlabel('Treatment Time')
+            # Only add the y-axis label on the left column for clarity
+            if j == 0:
+                ax.set_ylabel(f'{expression_values.split("_")[0]} expression')
+    
+    plt.tight_layout()
     return fig

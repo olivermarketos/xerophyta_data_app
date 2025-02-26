@@ -6,6 +6,8 @@ import  database.db as db
 import utils.plots as plots
 from utils.constants import DEGFilter, GENE_SELECTION_OPTIONS, DEG_FILTER_OPTIONS
 from utils.helper_functions import parse_input, retreive_query_data
+from datetime import datetime
+import io, zipfile
 
 st.title('Xerophyta Data Explorer')
 st.divider()
@@ -82,6 +84,19 @@ def generate_plots(data):
         fig = plots.dual_panel_gene_expression(data, st.session_state.expression_values)
         st.pyplot(fig)
    
+    # Save the figure to a bytes buffer in PNG format.
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', bbox_inches='tight')
+        buf.seek(0)  # Move to the beginning of the BytesIO buffer
+
+        # Provide a download button for the combined plot.
+        st.download_button(
+            label="Download combined plot",
+            data=buf,
+            file_name="combined_plot.png",
+            mime="image/png"
+        )
+    
     # plot on separate panels
     else:
         figures = plots.multi_panel_gene_expression(data, st.session_state.expression_values)
@@ -102,17 +117,44 @@ def generate_plots(data):
             if len(gene_figures) == 2:
                 col1, col2 = st.columns(2)  # Create two columns for side-by-side plots
 
-                # Show the first plot in the left column
                 with col1:
                     st.pyplot(gene_figures[0])
-
-                # Show the second plot in the right column
                 with col2:
                     st.pyplot(gene_figures[1])
+                
             else:
                 # If there's only one figure for a gene, show it in full width
                 st.pyplot(gene_figures[0])
+                
+        # Create a ZIP file containing all plots
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for gene_name, gene_figures in grouped_figures.items():
+                name = gene_name.split(" ")[1]
+                if len(gene_figures) == 2:
+                    buf1 = io.BytesIO()
+                    gene_figures[0].savefig(buf1, format='png', bbox_inches='tight')
+                    buf1.seek(0)
+                    zipf.writestr(f"{name}_dehydration.png", buf1.getvalue())
 
+                    buf2 = io.BytesIO()
+                    gene_figures[1].savefig(buf2, format='png', bbox_inches='tight')
+                    buf2.seek(0)
+                    zipf.writestr(f"{name}_rehydration.png", buf2.getvalue())
+
+                else:
+                    buf = io.BytesIO()
+                    gene_figures[0].savefig(buf, format='png', bbox_inches='tight')
+                    buf.seek(0)
+                    zipf.writestr(f"{name}_plot.png", buf.getvalue())
+
+        zip_buffer.seek(0)
+        st.download_button(
+            label="Download all plots",
+            data=zip_buffer,
+            file_name="all_plots.zip",
+            mime="application/zip"
+        )
 
 def empty_genes_warning():
     st.warning("No data found for the selected genes. Please double check that the correct boxes on the left are selected and that the entered terms are correct.")
@@ -124,7 +166,6 @@ def show_missing_genes(genes):
 def main():
     initialise_session_state()
     setup_sidebar()
-    st.write(st.session_state)
 
 
     if st.sidebar.button("Generate"):
@@ -165,13 +206,23 @@ def main():
 
             if st.checkbox("Show raw data"):
                 show_raw_data(rna_seq_data)
+                if not rna_seq_data.empty:
+                    csv_data = rna_seq_data.to_csv(index=False)
+                else:
+                    csv_data = "No data was retrieved from the database. Please double-check your input."
+                timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                file_name = f"Xerophyta_gene_expression_results_{timestamp_str}.csv"
+            
+                st.download_button(
+                    label="Download raw data as CSV",
+                    data=csv_data,
+                    file_name=file_name,
+                    mime="text/csv"
+                )
 
         else:
             st.markdown("Please enter at least one gene ID")
 
-
-    else:
-        show_instructions()
 
 def show_instructions():
     st.markdown(
@@ -182,12 +233,38 @@ def show_instructions():
         
         #### **Step 2: Select your genes of interest**
 
-        - **Xerophyta GeneID:** Input Xerophyta gene ID(s)
-        - **Orthologues of Arabidopsis Genes:** Provide an Arabidopsis gene ID
-        - **Genes with GO-term:** Enter a GO term
-     
+        - **Xerophyta GeneID:** Input Xerophyta gene ID(s) 
+            - e.g. Xele.ptg000049l.138, Xele.ptg000049l.140, Xele.ptg000049l.52
+        - **Arabidopsis homologue locus:** Provide an Arabidopsis locus ID 
+            - e.g. At5g65540, At5g58510
+        - **Arabidopsis homologue common name:** Provide an Arabidopsis common name
+            - e.g expansin A4, auxin response factor 2
+        - **Query by GO id:**
+            - The terms can be with or without a GO branch prefix 
+            - e.g. C:GO:0001939 or GO:0001939 will both work.
+        - **Query by GO name:**
+            - e.g. immune system process, leaf senescence
+        - **Query by Enzyme Code:**
+            - e.g. EC:1.15.1.1, EC:1.2.3.4
+        - **Query by Enzyme Name:**
+            - e.g. NAD(+) glycohydrolase, oxalate oxidase
         
+        > __note__: \\
+            - search terms are **case-insensitive**,\\
+            - partial matches are allowed for Arabidopsis homologue common names, GO term descriptions and enzyme names,\\
+            - large queries may take longer to process.
+            - for GO and enzyme queries, all genes returned will have at least one annotation with a matching term.
+
+        #### **Step 3: Plot settings:**
+        - **Expression value to plot:** Choose between log2 expression and normalised expression
+        - **Filter genes based on differential expression:** Choose to show all genes, all differentially expressed genes, only up-regulated or down-regulated genes
+        - **Plot display style:** Choose to show all genes on a single plot or on separate plots
+       #### **Step 4: Generate plots**
+        - Click the "Generate" button to retrieve the gene expression information based on the input provided.
+        - The plots will be displayed below the input fields.
+        - You can also choose to show the raw data by checking the "Show raw data" box.
        """
+       
     )
 
 main()
