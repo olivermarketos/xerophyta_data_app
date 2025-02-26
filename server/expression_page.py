@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import  database.db as db
 import utils.plots as plots
 from utils.constants import DEGFilter, GENE_SELECTION_OPTIONS, DEG_FILTER_OPTIONS
-from utils.helper_functions import parse_input 
+from utils.helper_functions import parse_input, retreive_query_data
 
 st.title('Xerophyta Data Explorer')
 st.divider()
@@ -75,19 +75,12 @@ def map_gene_selection():
     return gene_selection[st.session_state.gene_selection]
 
 def generate_plots(data):
-    st.subheader("Plot")
+    st.subheader("Plots")
 
     if st.session_state.plot_type == "Genes on single plot":
-        figures = plots.single_panel_gene_expression(data, st.session_state.expression_values)
-        col1, col2 = st.columns(2)  # Create two columns for side-by-side plots
-
-        # Show the first plot in the left column
-        with col1:
-            st.pyplot(figures[0])
-
-        # Show the second plot in the right column
-        with col2:
-            st.pyplot(figures[1])
+    # Create one combined figure with two side-by-side panels and a shared legend
+        fig = plots.dual_panel_gene_expression(data, st.session_state.expression_values)
+        st.pyplot(fig)
    
     # plot on separate panels
     else:
@@ -137,7 +130,7 @@ def main():
     if st.sidebar.button("Generate"):
         st.session_state.generate_clicked = True
  
-    if st.sidebar.button("Show Instructions") or not st.session_state.run_query:
+    if st.sidebar.button("Show Instructions") or not st.session_state.generate_clicked:
         show_instructions()
         st.session_state.generate_clicked = False
 
@@ -145,61 +138,33 @@ def main():
         input_genes = st.session_state.input_genes
         # input_genes = st.session_state.input_genes
         if input_genes:
-            gene_selection = map_gene_selection()
+            selected_species = st.session_state.species
+            input_genes = parse_input(input_genes)
+            rna_seq_data = []
 
-            if gene_selection == "xerophyta":
-                input_genes = parse_input(input_genes)
-                in_database = database.check_if_gene_in_database(input_genes)
-                genes_in_db = []
-                genes_not_in_db = []
+            gene_data, matched_input, missing_input = retreive_query_data(input_genes, selected_species, st.session_state.gene_input_type)
+            
+            xerophyta_genes = [gene.gene_name for gene in gene_data]           
 
-                for gene, is_in_db in zip(input_genes, in_database):
-                    if is_in_db:
-                        genes_in_db.append(gene)
-                    else:
-                        genes_not_in_db.append(gene)
+            # Fetch RNA-seq data and apply DEG filtering
+            selected_filter = DEG_FILTER_OPTIONS[st.session_state.filter_deg]
+            rna_seq_data = database.get_gene_expression_data(
+                xerophyta_genes, 
+                st.session_state.experiment, 
+                filter_deg=selected_filter
+            )
 
-                # Fetch RNA-seq data and apply DEG filtering
-                selected_filter = DEG_FILTER_OPTIONS[st.session_state.filter_deg]
-                rna_seq_data = database.get_gene_expression_data(
-                    genes_in_db, 
-                    st.session_state.experiment, 
-                    filter_deg=selected_filter
-                )
+            show_missing_genes(missing_input)
+               
+            if rna_seq_data.empty:
+                empty_genes_warning()
+            else:
+                generate_plots(rna_seq_data)
+                num_genes_retreived = rna_seq_data['gene_name'].nunique()
+                st.write(f"Found {num_genes_retreived} gene(s).")
 
-                show_missing_genes(genes_not_in_db)
-                if rna_seq_data.empty:
-                    empty_genes_warning()   
-                else:
-                    generate_plots(rna_seq_data)
-
-                if st.checkbox("Show raw data"):
-                    show_raw_data(rna_seq_data)
-
-            elif gene_selection == "arabidopsis":
-                pass
-
-            elif gene_selection == "go_term":
-                input_gos = parse_input(st.session_state.input_genes)
-                genes = database.get_genes_by_go_term_or_description(input_gos, st.session_state.species)
-                if genes is None:
-                    st.warning(f"No genes found for GO term: {input_genes}")
-                
-                gene_names = [gene.gene_name for gene in genes]
-                # Fetch RNA-seq data and apply DEG filtering
-                selected_filter = DEG_FILTER_OPTIONS[st.session_state.filter_deg]
-                rna_seq_data = database.get_gene_expression_data(
-                    gene_names, 
-                    st.session_state.experiment, 
-                    filter_deg=selected_filter
-                )
-                if rna_seq_data.empty:
-                    empty_genes_warning()
-                else:
-                    generate_plots(rna_seq_data)
-
-                if st.checkbox("Show raw data"):
-                    show_raw_data(rna_seq_data)
+            if st.checkbox("Show raw data"):
+                show_raw_data(rna_seq_data)
 
         else:
             st.markdown("Please enter at least one gene ID")

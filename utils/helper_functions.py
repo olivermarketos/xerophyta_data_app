@@ -21,6 +21,16 @@ def parse_input(input):
     return tokens
 
 def retreive_query_data(input_genes,selected_species, gene_input_type):
+    """Process the logic for querying the database based on the user's input. 
+
+    Args:
+        input_genes (_type_): _description_
+        selected_species (_type_): _description_
+        gene_input_type (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     database = db.DB()
     annotation_data = []
     matched_input = set()

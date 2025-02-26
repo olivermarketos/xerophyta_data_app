@@ -130,13 +130,60 @@ def single_panel_gene_expression(df, expression_values):
         ax.set_ylabel(f'{expression_values.split("_")[0]} expression')
         ax.set_title(f"Expression of Genes under {treatment}hydration")
 
-        ax.legend()
+        # ax.legend()
+       
+
         if treatment == "Re":
-            # Add legend
-            pass 
+            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+            plt.tight_layout()
             # ax.get_yaxis().set_visible(False)
 
         # Append the figure to the list 
         figures.append(fig)
 
     return figures
+def dual_panel_gene_expression(df, expression_values):
+    grouped = df.groupby('treatment')
+    treatments = sorted(grouped.groups.keys())
+    
+    fig_width, fig_height = 10, 6
+    fig, axs = plt.subplots(1, 2, figsize=(2 * fig_width, fig_height), sharey=True)
+    
+    legend_handles = {}  # store each gene's scatter handle and color for consistency
+    
+    for ax, treatment in zip(axs, treatments):
+        group = grouped.get_group(treatment)
+        times = sorted(group['time'].unique())
+        ax.set_xticks(times)
+        
+        for gene, gene_group in group.groupby('gene_name'):
+            if gene not in legend_handles:
+                sc = ax.scatter(gene_group['time'], gene_group[expression_values],
+                                label=gene, alpha=0.6)
+                color = sc.get_facecolors()[0]
+                legend_handles[gene] = (sc, color)
+            else:
+                color = legend_handles[gene][1]
+                ax.scatter(gene_group['time'], gene_group[expression_values],
+                           color=color, alpha=0.6)
+            
+            avg_gene_group = gene_group.groupby('time').agg({expression_values: 'mean'}).reset_index()
+            ax.plot(avg_gene_group['time'], avg_gene_group[expression_values],
+                    marker='o', color=color)
+        
+        ax.set_xlabel('Treatment Time')
+        ax.set_title(f"Expression of Genes under {treatment}hydration")
+        if ax == axs[0]:
+            ax.set_ylabel(f'{expression_values.split("_")[0]} expression')
+    
+    # Create a single legend outside the plots on the right side.
+    handles = [handle for handle, _ in legend_handles.values()]
+    labels = list(legend_handles.keys())
+    fig.legend(handles, labels,
+               loc='right',
+               title="Genes", fontsize='small')
+    
+    # Adjust subplots to allocate space for the legend on the right.
+    fig.subplots_adjust(right=0.8)
+    
+    return fig
