@@ -39,9 +39,8 @@ def setup_sidebar():
         if selected_gene_selection == option:
             st.sidebar.text_area(
                 config["input_label"],
-                placeholder=config["placeholder"],
+                value=config["value"],
                 key="input_genes",
-                value = st.session_state.input_genes,
                 on_change=lambda: st.session_state.update({"input_genes": st.session_state.input_genes})  # Update session state on change
             )
             st.session_state.gene_input_type = config["key"]
@@ -56,21 +55,7 @@ def setup_sidebar():
     st.sidebar.radio("Plot display style:", PLOT_DISPLAY_OPTIONS, key="plot_type")
     
 
-def show_instructions():
-    st.markdown(
-        """
-        #### **Step 1: Select your species and dataset to analyse**
 
-        - **Time-series expression:** Explore dynamic expression profiles
-        
-        #### **Step 2: Select your genes of interest**
-
-        - **Xerophyta GeneID:** Input Xerophyta gene ID(s)
-        - **Orthologues of Arabidopsis Genes:** Provide an Arabidopsis gene ID
-        - **Genes with GO-term:** Enter a GO term
-        """
-       
-    )
 
 @st.cache_data
 def show_raw_data(data):
@@ -146,10 +131,16 @@ def show_missing_genes(genes):
 def main():
     initialise_session_state()
     setup_sidebar()
+    st.write(st.session_state)
+
 
     if st.sidebar.button("Generate"):
         st.session_state.generate_clicked = True
  
+    if st.sidebar.button("Show Instructions") or not st.session_state.run_query:
+        show_instructions()
+        st.session_state.generate_clicked = False
+
     if st.session_state.generate_clicked:
         input_genes = st.session_state.input_genes
         # input_genes = st.session_state.input_genes
@@ -217,20 +208,26 @@ def main():
     else:
         show_instructions()
 
+def show_instructions():
+    st.markdown(
+        """
+        #### **Step 1: Select your species and dataset to analyse**
+
+        - **Time-series expression:** Explore dynamic expression profiles
+        
+        #### **Step 2: Select your genes of interest**
+
+        - **Xerophyta GeneID:** Input Xerophyta gene ID(s)
+        - **Orthologues of Arabidopsis Genes:** Provide an Arabidopsis gene ID
+        - **Genes with GO-term:** Enter a GO term
+     
+        
+       """
+    )
 
 main()
 st.divider()
 st.caption("To report a bug or suggest a feature, please contact olivermarketos@gmail.com.")
-
-
-
-
-# def match_genes(input_genes):
-    
-#     database = db.DB()
-#     return  database.match_homologue_to_Xe_gene(input_genes)
-
-
 
 
 

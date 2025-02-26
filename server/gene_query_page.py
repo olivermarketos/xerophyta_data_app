@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime 
 import database.db as db  # Your custom db module
-from utils.constants import GENE_ANNOTATION_SELECTION_OPTIONS
+from utils.constants import GENE_SELECTION_OPTIONS
 from utils.helper_functions import parse_input
 
 st.title("Xerophyta Database Explorer")
@@ -46,15 +46,15 @@ def setup_sidebar():
     st.session_state.species = selected_species
 
     # Query inputs
-    selected_gene_selection = st.sidebar.radio("Gene selection method:", list(GENE_ANNOTATION_SELECTION_OPTIONS.keys()), key="gene_selection")
+    selected_gene_selection = st.sidebar.radio("Gene selection method:", list(GENE_SELECTION_OPTIONS.keys()), key="gene_selection")
     # Gene input field based on selection
-    for option, config in GENE_ANNOTATION_SELECTION_OPTIONS.items():
+    for option, config in GENE_SELECTION_OPTIONS.items():
         if selected_gene_selection == option:
             st.sidebar.text_area(
                 config["input_label"],
-                placeholder=config["placeholder"],
+                value=config["value"],
                 key="input_genes",
-                value = st.session_state.input_genes,
+                # value = st.session_state.input_genes,
                 on_change=lambda: st.session_state.update({"input_genes": st.session_state.input_genes})  # Update session state on change
             )
             st.session_state.gene_input_type = config["key"]
@@ -70,11 +70,12 @@ def setup_sidebar():
 def main():
     initialise_session_state()
     setup_sidebar()
+
     if st.sidebar.button("Run Query"):
         st.session_state.run_query = True
     
     if st.sidebar.button("Show Instructions") or not st.session_state.run_query:
-        instruction_page()
+        show_instructions()
         st.session_state.run_query = False
 
     if st.session_state.run_query:
@@ -256,7 +257,7 @@ def main():
                 )
 
 
-def instruction_page():
+def show_instructions():
 
     # Welcome and brief introduction
     # Detailed steps and descriptions
@@ -307,7 +308,7 @@ def instruction_page():
             - e.g. NAD(+) glycohydrolase, oxalate oxidase
             - All genes returned will have at least one annotation with a matching enzyme name.
             > __note__: search terms are case-insensitive, partial matches are allowed and large queries may take longer to process.
-            
+
         8. **Run Query:**
             - Click the "Run Query" button to retrieve the gene annotation information based on the input provided.
         
@@ -318,4 +319,8 @@ def instruction_page():
 
 
 main()
+st.divider()
+st.caption("To report a bug or suggest a feature, please contact olivermarketos@gmail.com.")
+
+
 
