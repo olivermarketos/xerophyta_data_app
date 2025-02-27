@@ -83,7 +83,7 @@ def generate_plots(data):
     # Create one combined figure with two side-by-side panels and a shared legend
         fig = plots.dual_panel_gene_expression(data, st.session_state.expression_values)
         st.pyplot(fig)
-   
+
     # Save the figure to a bytes buffer in PNG format.
         buf = io.BytesIO()
         fig.savefig(buf, format='png', bbox_inches='tight')
@@ -96,57 +96,57 @@ def generate_plots(data):
             file_name="combined_plot.png",
             mime="image/png"
         )
-    
+        plt.close(fig)
     # plot on separate panels
     else:
+        # Generate figures
         figures = plots.multi_panel_gene_expression(data, st.session_state.expression_values)
+        
         # Group the figures by gene_name
         grouped_figures = {}
-
         for fig in figures:
             # Extract the gene name from the title
             title = fig.axes[0].get_title()
             gene_name = title.split('|')[0].strip()  
-            if gene_name not in grouped_figures:
-                grouped_figures[gene_name] = []
-
-            grouped_figures[gene_name].append(fig)
+            grouped_figures.setdefault(gene_name, []).append(fig)
 
         # Display plots for each gene, side by side
         for gene_name, gene_figures in grouped_figures.items():
             if len(gene_figures) == 2:
                 col1, col2 = st.columns(2)  # Create two columns for side-by-side plots
-
                 with col1:
                     st.pyplot(gene_figures[0])
                 with col2:
                     st.pyplot(gene_figures[1])
-                
             else:
-                # If there's only one figure for a gene, show it in full width
+                # If there's only one figure for a gene, show it full width
                 st.pyplot(gene_figures[0])
-                
+        
         # Create a ZIP file containing all plots
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
             for gene_name, gene_figures in grouped_figures.items():
-                name = gene_name.split(" ")[1]
+                # Use a safe name; adjust splitting as needed
+                parts = gene_name.split(" ")
+                name = parts[1] if len(parts) > 1 else gene_name
                 if len(gene_figures) == 2:
                     buf1 = io.BytesIO()
                     gene_figures[0].savefig(buf1, format='png', bbox_inches='tight')
                     buf1.seek(0)
                     zipf.writestr(f"{name}_dehydration.png", buf1.getvalue())
+                    buf1.close()
 
                     buf2 = io.BytesIO()
                     gene_figures[1].savefig(buf2, format='png', bbox_inches='tight')
                     buf2.seek(0)
                     zipf.writestr(f"{name}_rehydration.png", buf2.getvalue())
-
+                    buf2.close()
                 else:
                     buf = io.BytesIO()
                     gene_figures[0].savefig(buf, format='png', bbox_inches='tight')
                     buf.seek(0)
                     zipf.writestr(f"{name}_plot.png", buf.getvalue())
+                    buf.close()
 
         zip_buffer.seek(0)
         st.download_button(
@@ -155,6 +155,13 @@ def generate_plots(data):
             file_name="all_plots.zip",
             mime="application/zip"
         )
+        zip_buffer.close()
+
+        # Finally, close all figures to free memory.
+        for gene_figures in grouped_figures.values():
+            for fig in gene_figures:
+                plt.close(fig)
+
 
 def empty_genes_warning():
     st.warning("No data found for the selected genes. Please double check that the correct boxes on the left are selected and that the entered terms are correct.")
