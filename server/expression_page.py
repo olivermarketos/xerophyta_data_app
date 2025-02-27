@@ -200,9 +200,10 @@ def main():
             if rna_seq_data.empty:
                 empty_genes_warning()
             else:
-                generate_plots(rna_seq_data)
-                num_genes_retreived = rna_seq_data['gene_name'].nunique()
-                st.write(f"Found {num_genes_retreived} gene(s).")
+                with st.spinner("Generating plots...", show_time=True):
+                    generate_plots(rna_seq_data)
+                    num_genes_retreived = rna_seq_data['gene_name'].nunique()
+                    st.write(f"Found {num_genes_retreived} gene(s).")
 
             if st.checkbox("Show raw data"):
                 show_raw_data(rna_seq_data)
