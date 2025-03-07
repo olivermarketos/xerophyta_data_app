@@ -69,7 +69,6 @@ def setup_sidebar():
 
 def main():
     initialise_session_state()
-    setup_sidebar()
 
     if st.sidebar.button("Run Query"):
         st.session_state.run_query = True
@@ -77,6 +76,8 @@ def main():
     if st.sidebar.button("Show Instructions") or not st.session_state.run_query:
         show_instructions()
         st.session_state.run_query = False
+
+    setup_sidebar()
 
     if st.session_state.run_query:
         input_genes = st.session_state.input_genes

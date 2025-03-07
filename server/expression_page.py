@@ -172,15 +172,16 @@ def show_missing_genes(genes):
 
 def main():
     initialise_session_state()
-    setup_sidebar()
 
 
-    if st.sidebar.button("Generate"):
+    if st.sidebar.button("Generate plots"):
         st.session_state.generate_clicked = True
  
     if st.sidebar.button("Show Instructions") or not st.session_state.generate_clicked:
         show_instructions()
         st.session_state.generate_clicked = False
+
+    setup_sidebar()
 
     if st.session_state.generate_clicked:
         input_genes = st.session_state.input_genes
