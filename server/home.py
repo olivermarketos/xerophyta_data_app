@@ -20,7 +20,8 @@ st.markdown(
 # col3.subheader("**X. humilis**")
 # col3.image("server/images/x_humilis_plant.png")
 
-with st.expander("Species info:", expanded=True):
+st.subheader("Xerophyta species information")
+with st.expander("_click to expand_", expanded=True, icon= "🌱"):
     tab1, tab2, tab3 = st.tabs(["X. elegans", "X. schlechteri", "X. humilis"])
 
     with tab1:
@@ -51,7 +52,9 @@ with st.expander("Species info:", expanded=True):
         col1.image("server/images/x_humilis_plant.png", width=250 )
         col2.write("Some description about species and experiments, links etc...")
 
-with st.expander("Interface description:", expanded=True):
+st.subheader("Interface description")
+
+with st.expander("_click to expand_", expanded=True, icon="ℹ️"):
     st.markdown("#### Gene info page")
     st.page_link("server/gene_query_page.py", label="Click here for Gene info page", icon="📑")
     st.write("Add info about page")
