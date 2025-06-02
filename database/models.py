@@ -1,7 +1,7 @@
 """
 Defines all the data models used in the database
 """
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, Table, Boolean, Float, CHAR
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, Table, Boolean, Float, CHAR, UniqueConstraint, Enum
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -69,6 +69,58 @@ class Gene(Base):
     gene_expressions = relationship("Gene_expressions", back_populates="genes")
     differential_expression = relationship("DifferentialExpression", back_populates="gene") 
 
+
+   # Interactions where this gene is the REGULATOR
+    regulates_interactions = relationship(
+        "RegulatoryInteraction",
+        foreign_keys="[RegulatoryInteraction.regulator_gene_id]", # Use string form for forward reference
+        back_populates="regulator_gene",
+        cascade="all, delete-orphan"
+    )
+    # Interactions where this gene is the TARGET
+    targeted_by_interactions = relationship(
+        "RegulatoryInteraction",
+        foreign_keys="[RegulatoryInteraction.target_gene_id]", # Use string form for forward reference
+        back_populates="target_gene",
+        cascade="all, delete-orphan"
+    )
+
+RegulationDirectionEnum = Enum('Activation', 'Repression', 'Unknown', name='regulation_direction_enum')
+
+class RegulatoryInteraction(Base):
+    __tablename__ = "regulatory_interactions"
+
+    id = Column(Integer, primary_key=True)
+
+    # Foreign key to the Gene table for the regulator
+    regulator_gene_id = Column(Integer, ForeignKey('genes.id'), nullable=False)
+    # Foreign key to the Gene table for the target
+    target_gene_id = Column(Integer, ForeignKey('genes.id'), nullable=False)
+
+    regulatory_cluster = Column(String, nullable=True) # e.g., "HSF:1"
+    target_cluster = Column(String, nullable=True)     # e.g., "HD-ZIP:1"
+
+    # Direction of regulation: "Activation" or "Repression" (or potentially others)
+    direction = Column(RegulationDirectionEnum, nullable=False)
+
+    # Relationships back to Gene
+    regulator_gene = relationship(
+        "Gene",
+        foreign_keys=[regulator_gene_id],
+        back_populates="regulates_interactions"
+    )
+    target_gene = relationship(
+        "Gene",
+        foreign_keys=[target_gene_id],
+        back_populates="targeted_by_interactions"
+    )
+
+    __table_args__ = (
+        # Ensures that a specific regulator-target pair is unique (per analysis/experiment if those fields are added)
+        UniqueConstraint('regulator_gene_id', 'target_gene_id', name='uq_regulator_target_pair'),
+        # If you add experiment_id, you might want:
+        # UniqueConstraint('regulator_gene_id', 'target_gene_id', 'experiment_id', name='uq_regulator_target_experiment_pair'),
+    )
 
 class Annotation(Base):
     __tablename__ = "annotations"
