@@ -22,7 +22,7 @@ st.markdown(
 
 st.subheader("Xerophyta species information")
 with st.expander("_click to expand_", expanded=True, icon= "🌱"):
-    tab1, tab2, tab3 = st.tabs(["X. elegans", "X. schlechteri", "X. humilis"])
+    tab1, tab2, tab3, tab4 = st.tabs(["X. elegans", "X. schlechteri", "X. humilis", "About the lab"])
 
     with tab1:
         st.subheader("X. elegans")
@@ -52,6 +52,8 @@ with st.expander("_click to expand_", expanded=True, icon= "🌱"):
         col1.image("server/images/x_humilis_plant.png", width=250 )
         col2.write("Some description about species and experiments, links etc...")
 
+    with tab4:
+        st.subheader("EvoDyn lab")
 st.subheader("Interface description")
 
 with st.expander("_click to expand_", expanded=True, icon="ℹ️"):
