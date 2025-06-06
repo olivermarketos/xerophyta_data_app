@@ -5,6 +5,8 @@ import os
 import sqlalchemy as sq
 import database.db as db
 import pandas as pd
+from sqlalchemy.exc import SQLAlchemyError
+import tqdm as tqdm
 
 # DATABASE_NAME = "xerophyta_db.sqlite"
 # DATABASE_NAME = "test_db.sqlite"
@@ -224,7 +226,146 @@ def add_a_thaliana_gene_mapping(mapping_file):
 
     database.add_a_thaliana_gene_mappings(data)
 
+def add_regulatory_interactions(grn_data_df, species_name=None):
+    """
+    Adds gene regulatory network interactions to the database.
+
+    Args:
+        grn_data_df (pd.DataFrame): DataFrame with GRN data.
+        Expected columns: "Regulatory cluster", "Predicted regulators",
+                                "Target cluster", "Predicted targets", "Direction of regulation"
+        species_name (str, optional): If provided, interactions will only be added if
+                                        both regulator and target genes belong to this species.
+                                        This can be useful if gene names are not globally unique
+                                        across species in your `genes` table (though your current
+                                        `gene_name` is unique).
+    """
+    database = db.DB()
+
+    required_columns = [
+        "Regulatory cluster", "Predicted regulators",
+        "Target cluster", "Predicted targets", "Direction of regulation"
+    ]
+    if not all(col in grn_data_df.columns for col in required_columns):
+        missing_cols = [col for col in required_columns if col not in grn_data_df.columns]
+        raise ValueError(f"GRN DataFrame is missing required columns: {missing_cols}")
+
+    interactions_added = 0
+    interactions_skipped_gene_not_found = 0
+    genes_not_found = set()  # To track unique genes not found
+    interactions_skipped_species_mismatch = 0
+    interactions_skipped_already_exists = 0
     
+    target_species_id = None
+    if species_name:
+        species_obj = database.get_species_by_name(species_name)
+        if not species_obj:
+            print(f"Warning: Species '{species_name}' not found. Cannot filter by species.")
+        else:
+            target_species_id = species_obj.id
+
+    for index, row in tqdm.tqdm(grn_data_df.iterrows(), total=len(grn_data_df), desc="Processing GRN interactions"):
+        regulator_gene_name = row["Predicted regulators"]
+        target_gene_name = row["Predicted targets"]
+        regulatory_cluster = row["Regulatory cluster"]
+        target_cluster = row["Target cluster"]
+        direction = row["Direction of regulation"] # e.g., "Activation"
+
+        # 1. Find the regulator Gene object
+        regulator_gene = database.session.query(models.Gene).filter_by(gene_name=regulator_gene_name).first()
+        if not regulator_gene:
+            print(f"Warning: Regulator gene '{regulator_gene_name}' not found. Skipping interaction row {index+1}.")
+            interactions_skipped_gene_not_found += 1
+            genes_not_found.add(regulator_gene_name)  # Track unique gene not found
+            continue
+
+        # 2. Find the target Gene object
+        target_gene = database.session.query(models.Gene).filter_by(gene_name=target_gene_name).first()
+        if not target_gene:
+            print(f"Warning: Target gene '{target_gene_name}' not found. Skipping interaction row {index+1}.")
+            interactions_skipped_gene_not_found += 1
+            genes_not_found.add(target_gene_name)  # Track unique gene not found
+            continue
+        
+        # 3. (Optional) Check if genes belong to the specified species
+        if target_species_id is not None:
+            if getattr(regulator_gene, "species_id", None) != target_species_id or \
+                getattr(target_gene, "species_id", None) != target_species_id:
+                print(f"Warning: Regulator '{regulator_gene_name}' (species {regulator_gene.species_id}) or "
+                        f"target '{target_gene_name}' (species {target_gene.species_id}) "
+                        f"does not belong to target species {target_species_id}. Skipping interaction row {index+1}.")
+                interactions_skipped_species_mismatch += 1
+                continue
+
+        # 4. Check if this interaction already exists (using the UniqueConstraint)
+        existing_interaction = (
+            database.session.query(models.RegulatoryInteraction)
+            .filter_by(
+                regulator_gene_id=regulator_gene.id,
+                target_gene_id=target_gene.id
+                # You might add other fields here if your UniqueConstraint is more complex
+                # e.g., experiment_id if you add that to RegulatoryInteraction
+            )
+            .first()
+        )
+
+        if existing_interaction:
+            # Optionally update if direction or clusters changed, or just skip
+            # For now, we'll skip if it exists to avoid duplicates.
+            # You could add logic here to update `direction`, `regulatory_cluster`, `target_cluster`
+            # if `existing_interaction.direction != direction` etc.
+            # print(f"Interaction between {regulator_gene_name} and {target_gene_name} already exists. Skipping row {index+1}.")
+            interactions_skipped_already_exists += 1
+            continue
+
+        # 5. Create and add the new RegulatoryInteraction
+        try:
+            new_interaction = models.RegulatoryInteraction(
+                regulator_gene_id=regulator_gene.id,  # or regulator_gene=regulator_gene
+                target_gene_id=target_gene.id,        # or target_gene=target_gene
+                regulatory_cluster=regulatory_cluster,
+                target_cluster=target_cluster,
+                direction=direction  # This must match one of your Enum values ('Activation', 'Repression', 'Unknown')
+            )
+            database.session.add(new_interaction)
+            interactions_added += 1
+        except ValueError as ve: # Catches issues if `direction` is not in Enum
+            print(f"Error creating interaction for row {index+1}: {ve}. Invalid direction value: '{direction}'. Skipping.")
+            database.session.rollback() # Rollback the add attempt for this interaction
+            continue
+
+
+        # Commit in batches for performance
+        if (index + 1) % 1000 == 0:
+            try:
+                database.session.commit()
+                # print(f"Committed {interactions_added} new interactions so far (processed {index + 1} rows).")
+            except SQLAlchemyError as e:
+                database.session.rollback()
+                print(f"Error committing batch: {e}")
+                # Potentially stop or handle more gracefully
+                raise
+
+    # Final commit for any remaining interactions
+    try:
+        database.session.commit()
+    except SQLAlchemyError as e:
+        database.session.rollback()
+        print(f"Error during final commit: {e}")
+        raise
+        
+    print(f"\n--- GRN Population Summary ---")
+    print(f"Successfully added: {interactions_added} interactions.")
+    print(f"Skipped (gene not found): {interactions_skipped_gene_not_found} interactions.")
+    if species_name:
+        print(f"Skipped (species mismatch): {interactions_skipped_species_mismatch} interactions.")
+    print(f"Skipped (already exists): {interactions_skipped_already_exists} interactions.")
+    print(f"Total rows processed: {len(grn_data_df)}")
+
+    print(f"Unique genes not found in DB: {len(genes_not_found)}")
+
+
+
 def main(species_name, fasta_file, annotation_file, homologue_file):
     database = db.DB()
     species = database.add_species(species_name) # add species to database
@@ -234,17 +375,21 @@ def main(species_name, fasta_file, annotation_file, homologue_file):
 
 if __name__ == "__main__":
     # replace  the following with the appropriate file paths and values
-    species_name = "X. elegans"
-    experiment_name = "xe_seedlings_time_course"
-    fasta_file = "all_data/Xschlechteri_Nov2024/Xsch_CDS_annot150424.fasta"
-    annotation_file = "all_data/Xschlechteri_Nov2024/20241108_Xschlechteri_annotation_23009_export_table_Oliver.csv"
-    homologue_file = "data/uniprot/arab_idmapping_2024_09_22.csv"
-    # main(species_name, fasta_file, annotation_file, homologue_file)
+    # species_name = "X. elegans"
+    # experiment_name = "xe_seedlings_time_course"
+    # fasta_file = "all_data/Xschlechteri_Nov2024/Xsch_CDS_annot150424.fasta"
+    # annotation_file = "all_data/Xschlechteri_Nov2024/20241108_Xschlechteri_annotation_23009_export_table_Oliver.csv"
+    # homologue_file = "data/uniprot/arab_idmapping_2024_09_22.csv"
+    # # main(species_name, fasta_file, annotation_file, homologue_file)
 
-    # rna_seq_data = pd.read_csv("all_data/Michael_RNAseq/Xe_seedlings (updated)/Xe_seedlings_DESeq2_normalised_counts_table_tidy_for_db.csv")
-    # add_rna_seq_data(rna_seq_data, species_name, experiment_name) # add rna seq data to database
+    # # rna_seq_data = pd.read_csv("all_data/Michael_RNAseq/Xe_seedlings (updated)/Xe_seedlings_DESeq2_normalised_counts_table_tidy_for_db.csv")
+    # # add_rna_seq_data(rna_seq_data, species_name, experiment_name) # add rna seq data to database
 
-    DEG_data = "all_data/Michael_RNAseq/Xe_seedlings (updated)/All genes with earliest onset of DE with direction.csv"
-    experiment_name = "xe_seedlings_time_course"
+    # DEG_data = "all_data/Michael_RNAseq/Xe_seedlings (updated)/All genes with earliest onset of DE with direction.csv"
+    # experiment_name = "xe_seedlings_time_course"
 
-    add_DEG_data(DEG_data, experiment_name) # add DEG data to database
+    # add_DEG_data(DEG_data, experiment_name) # add DEG data to database
+
+    file = "all_data/test_grn.csv"
+    df = pd.read_csv(file)
+    add_regulatory_interactions(df, species_name="X. elegans")

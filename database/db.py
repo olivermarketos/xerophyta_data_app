@@ -1,5 +1,5 @@
 import sqlalchemy as sq
-from sqlalchemy.orm import sessionmaker, joinedload, subqueryload
+from sqlalchemy.orm import sessionmaker, joinedload, subqueryload, aliased
 import database.models as models 
 import pandas as pd
 from sqlalchemy import or_, func
@@ -248,7 +248,107 @@ class DB():
         query = self.session.query(models.Gene).filter_by(gene_name=gene_name).first()
         return query
     
-    
+    def get_gene_names_from_species(self, species_name= None):
+        """Return all gene objects for  a specific species
+
+        Args:
+            species_name (str): Species name for query. If none, return all genes in DB
+
+        Returns:
+            _type_: Gene objects
+        """
+        if species_name is None:
+            query = self.session.query(models.Gene)
+        
+        else:
+            species_id = self.get_species_by_name(species_name).id
+            query = self.session.query(models.Gene).filter_by(species_id= species_id)
+
+
+        return query.all()
+
+
+
+
+    def get_regulatory_interactions(self,
+                                    regulator_gene_name=None,
+                                    target_gene_name=None,
+                                    regulatory_cluster=None,
+                                    target_cluster=None,
+                                    directions=None,
+                                    species_name=None,
+                                    limit=1000): # Add a limit to prevent overwhelming results
+        """
+        Retrieves gene regulatory interactions based on specified filters.
+
+        Args:
+            regulator_gene_name_like (str, optional): Filter by regulator gene name (supports partial match).
+            target_gene_name_like (str, optional): Filter by target gene name (supports partial match).
+            regulatory_cluster_like (str, optional): Filter by regulatory cluster (supports partial match).
+            target_cluster_like (str, optional): Filter by target cluster (supports partial match).
+            directions (list, optional): Filter by a list of regulation directions (e.g., ['Activation', 'Repression']).
+            species_name (str, optional): Filter by species name for the interacting genes.
+            limit (int, optional): Maximum number of results to return.
+
+        Returns:
+            list: A list of dictionaries, where each dictionary represents an interaction
+                  with 'regulator_gene_name', 'target_gene_name', 'regulatory_cluster',
+                  'target_cluster', and 'direction'.
+        """
+        RegulatorGene = aliased(models.Gene, name="regulator_gene")
+        TargetGene = aliased(models.Gene, name="target_gene")
+
+        query = (
+            self.session.query(
+                RegulatorGene.gene_name.label("regulator_gene_name"),
+                TargetGene.gene_name.label("target_gene_name"),
+                models.RegulatoryInteraction.regulatory_cluster,
+                models.RegulatoryInteraction.target_cluster,
+                models.RegulatoryInteraction.direction
+            )
+            .join(RegulatorGene, models.RegulatoryInteraction.regulator_gene_id == RegulatorGene.id)
+            .join(TargetGene, models.RegulatoryInteraction.target_gene_id == TargetGene.id)
+        )
+
+        if regulator_gene_name:
+            query = query.filter(RegulatorGene.gene_name.ilike(f"%{regulator_gene_name}%"))
+        if target_gene_name:
+            query = query.filter(TargetGene.gene_name.ilike(f"%{target_gene_name}%"))
+        if regulatory_cluster:
+            query = query.filter(models.RegulatoryInteraction.regulatory_cluster.ilike(f"%{regulatory_cluster}%"))
+        if target_cluster:
+            query = query.filter(models.RegulatoryInteraction.target_cluster.ilike(f"%{target_cluster}%"))
+        if directions and len(directions) > 0:
+            # Ensure directions are valid Enum members or string representations
+            # The comparison will work with strings if your Enum uses strings
+            query = query.filter(models.RegulatoryInteraction.direction.in_(directions))
+
+        if species_name:
+            species_obj = self.get_species_by_name(species_name)
+            if species_obj:
+                # Assuming both regulator and target must be from the same specified species
+                query = query.filter(RegulatorGene.species_id == species_obj.id)
+                query = query.filter(TargetGene.species_id == species_obj.id)
+            else:
+                # Handle case where species name is invalid - perhaps return empty or log warning
+                print(f"Warning: Species '{species_name}' not found for GRN query.")
+                return [] # Or raise an error, or ignore the species filter
+
+        results = query.limit(limit).all()
+
+        # Convert results to a list of dictionaries for easier DataFrame creation
+        output_data = [
+            {
+                "Regulator Gene": r.regulator_gene_name,
+                "Target Gene": r.target_gene_name,
+                "Regulatory Cluster": r.regulatory_cluster,
+                "Target Cluster": r.target_cluster,
+                "Direction": str(r.direction) # Convert Enum to string for display
+            }
+            for r in results
+        ]
+        return output_data
+
     
     def get_gene_annotation_data(self, gene_list, query_type, species_name= "Any"):
         """Get annotation data associated with a list of Xerophyta gene names, GO terms or arabidopsis homologes (locus or common name).
@@ -516,6 +616,7 @@ class DB():
         query = self.session.query(models.Species).filter_by(name=species_name).first()
         return query
 
+ 
     def get_experiments(self):
         results = self.session.query(models.Experiments).all()
         

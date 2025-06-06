@@ -95,7 +95,7 @@ def main():
             st.subheader("Search Results")
             st.write(f"Found {len(results)} gene(s).")
             if missing_input:
-                st.warning(f"Input genes not found: {", ".join([i for i in missing_input])}")
+                st.warning(f"Input genes not found: {', '.join([i for i in missing_input])}")
             selected_columns = st.session_state.selected_columns
 
             if not df.empty:
@@ -130,7 +130,7 @@ def main():
                 seq = gene["coding_sequence"] or ""
                 
                 # FASTA header: >GeneName description
-                header = f">{gene["gene_name"]} {gene['description']}"
+                header = f">{gene['gene_name']} {gene['description']}"
 
                 # Build the FASTA entry (header + sequence)
                 fasta_entries.append(header)
