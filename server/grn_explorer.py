@@ -190,7 +190,6 @@ def show_instructions():
 
     **Troubleshooting & Tips**  
     - If you see “No regulatory interactions found matching your criteria.”, try broadening filters (e.g. set clusters back to **Any**).  
-    - Partial names and cluster prefixes are supported—experiment with shorter strings!
 
 
     """)
