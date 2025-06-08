@@ -150,15 +150,50 @@ def show_instructions():
 
     # Welcome and brief introduction
     # Detailed steps and descriptions
-    st.markdown(
-        """
-        ### Retrieve Gene Regulatory Network  information.
+    st.markdown("""
+    ### How to Use the Xerophyta Database Explorer
 
-        The panel on the left provides various means to query the database to retreive gene annotation information.
+    Use the controls on the left to filter and retrieve gene regulatory interactions for *Xerophyta elegans*.
 
-        """
-    )
+    **1. Species**  
+    - Currently only **X. elegans** is available.  
 
+    **2. Regulator Gene**  
+    - Select or enter a regulator gene which appears in the network, or leave as **Any** to include all.  
+
+    **3. Target Gene**  
+    - Select a target gene present in the GRN, or **Any** for all targets.  
+
+    **4. Regulatory Cluster**  
+    - Filter by upstream cluster (e.g. `HSF:1`), or **Any**. 
+    - Use the dropdown to select one.
+ 
+
+    **5. Target Cluster**  
+    - Filter by downstream cluster (e.g. `HD-ZIP:1`), or **Any**.  
+    - Use the dropdown to select one.
+
+
+    **6. Direction of Regulation**  
+    - Choose **Activation**, **Repression** or **Unknown**.  
+    - Use the dropdown to select one
+
+    **7. Max Results**  
+    - Limit how many rows to display (default 100, up to 5000).
+
+    **8. Run Query**  
+    - Click **Run Query** to fetch.  
+    - If matches are found, they appear in a table below.  
+
+    **9. Download**  
+    - Click **Download results as CSV** to save your filtered interactions.
+
+    **Troubleshooting & Tips**  
+    - If you see “No regulatory interactions found matching your criteria.”, try broadening filters (e.g. set clusters back to **Any**).  
+    - Partial names and cluster prefixes are supported—experiment with shorter strings!
+
+
+    """)
 
 main()
 st.divider()
