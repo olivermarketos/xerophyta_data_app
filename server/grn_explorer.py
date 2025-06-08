@@ -151,9 +151,9 @@ def show_instructions():
     # Welcome and brief introduction
     # Detailed steps and descriptions
     st.markdown("""
-    ### How to Use the Xerophyta Database Explorer
+    ### How to use the Xerophyta Gene Regulatory Network Explorer
 
-    Use the controls on the left to filter and retrieve gene regulatory interactions for *Xerophyta elegans*.
+    Use the controls on the left to filter and retrieve gene regulatory interactions.
 
     **1. Species**  
     - Currently only **X. elegans** is available.  
