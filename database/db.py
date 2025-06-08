@@ -289,7 +289,33 @@ class DB():
 
         return query.all()
 
+    def get_distinct_regulator_gene_names(self, species_name=None):
+        Reg = aliased(models.Gene)
+        q = (
+            self.session
+                .query(Reg.gene_name)
+                .join(models.RegulatoryInteraction,
+                      models.RegulatoryInteraction.regulator_gene_id == Reg.id)
+        )
+        if species_name:
+            species = self.get_species_by_name(species_name)
+            if species:
+                q = q.filter(Reg.species_id == species.id)
+        return sorted(r[0] for r in q.distinct().all())
 
+    def get_distinct_target_gene_names(self, species_name=None):
+        Tar = aliased(models.Gene)
+        q = (
+            self.session
+                .query(Tar.gene_name)
+                .join(models.RegulatoryInteraction,
+                      models.RegulatoryInteraction.target_gene_id == Tar.id)
+        )
+        if species_name:
+            species = self.get_species_by_name(species_name)
+            if species:
+                q = q.filter(Tar.species_id == species.id)
+        return sorted(r[0] for r in q.distinct().all())
 
     def get_regulatory_interactions(self,
                                     regulator_gene_name=None,

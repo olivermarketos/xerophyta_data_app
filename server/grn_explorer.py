@@ -10,25 +10,6 @@ st.title("Xerophyta Database Explorer")
 st.divider()
 database = db.DB()
 
-# for letting user select what data to display
-ALL_COLUMNS = [
-            "species",
-            "gene_name",
-            "a_thaliana_locus",
-            "a_thaliana_common_name",
-            "description",
-            "coding_sequence",
-            "e_value",
-            "bit_score",
-            "similarity",
-            "alignment_length",
-            "positives",
-            "go_ids",
-            "go_names",
-            "enzyme_codes",
-            "enzyme_names",
-            "interpro_ids"
-        ]
 
 def initialise_session_state():
     if "run_query" not in st.session_state:
@@ -43,6 +24,8 @@ def load_interaction_filters():
         'regulatory_cluster':    database.get_distinct_values(RegulatoryInteraction, 'regulatory_cluster'),
         'target_cluster':        database.get_distinct_values(RegulatoryInteraction, 'target_cluster'),
         'direction':             database.get_distinct_values(RegulatoryInteraction, 'direction'),
+        'regulator_genes':       database.get_distinct_regulator_gene_names("X. elegans"),
+        'target_genes':          database.get_distinct_target_gene_names("X. elegans"),
     }
 
 def get_gene_names():
@@ -65,30 +48,23 @@ def setup_sidebar():
     )
 
 
-    all_gene_names = get_gene_names()
-    all_gene_names = ["Any"] + all_gene_names
     regulator_gene_query = st.sidebar.selectbox(
         "Query gene",
-            all_gene_names,
-            index=0,
-            key="query_gene",
-            placeholder="Select a regulator gene name or enter one",
-            accept_new_options=True,
-            help="Enter or select full gene name for the regulator gene. Leave as None to query all genes. List contains all genes for selected species, not just those in the GRN."
-
-        )
+        ["Any"]+filters['regulator_genes'],
+        index=0,
+        key="query_gene",
+        accept_new_options=True,
+        help="Select a regulator gene from the GRN."
+    )
 
     target_gene_query = st.sidebar.selectbox(
         "Target Gene Name",
-        all_gene_names,
+        ["Any"] + filters['target_genes'],
         index=0,
         key="target_gene",
-        placeholder="Select a target gene name or enter one",
         accept_new_options=True,
-        help="Enter or select full gene name for the target. Leave as None to query all genes. List contains all genes for selected species, not just those in the GRN."
-
-    )
-    
+        help="Select a target gene from the GRN."
+    )    
     regulatory_cluster_query = st.sidebar.selectbox(
         "Regulatory Cluster:",
         ["Any"]+filters['regulatory_cluster'],
@@ -137,8 +113,7 @@ def main():
             "species_name": "X. elegans",
             "regulatory_cluster": st.session_state.regulatory_cluster if st.session_state.regulatory_cluster != "Any" else None,
             "target_cluster": st.session_state.target_cluster if st.session_state.target_cluster != "Any" else None,
-            "directions": st.session_state.direction if st.session_state.direction != "Any" else None,
-
+            "directions": [st.session_state.direction] if st.session_state.direction != "Any" else None,
             "regulator_gene_name": st.session_state.query_gene if st.session_state.query_gene != "Any" else None,
             "target_gene_name": st.session_state.target_gene if st.session_state.target_gene != "Any" else None,
 
