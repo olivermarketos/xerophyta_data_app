@@ -4,6 +4,7 @@ from datetime import datetime
 import database.db as db  # Your custom db module
 from utils.constants import GENE_SELECTION_OPTIONS
 from utils.helper_functions import parse_input, retreive_query_data
+from database.models import RegulatoryInteraction, Gene, Species
 
 st.title("Xerophyta Database Explorer")
 st.divider()
@@ -35,7 +36,15 @@ def initialise_session_state():
     if "input_genes" not in st.session_state:
         st.session_state.input_genes = ""
     
+
 @st.cache_data
+def load_interaction_filters():
+    return {
+        'regulatory_cluster':    database.get_distinct_values(RegulatoryInteraction, 'regulatory_cluster'),
+        'target_cluster':        database.get_distinct_values(RegulatoryInteraction, 'target_cluster'),
+        'direction':             database.get_distinct_values(RegulatoryInteraction, 'direction'),
+    }
+
 def get_gene_names():
     all_gene_objects = database.get_gene_names_from_species("X. elegans")
     all_gene_names = [g.gene_name for g in all_gene_objects]
@@ -43,6 +52,8 @@ def get_gene_names():
 
 def setup_sidebar():
     st.sidebar.header("Filter Options")
+
+    filters = load_interaction_filters()
 
     # TODO change this to be dynamic once there is GRN data for other species
     selected_species = st.sidebar.selectbox(
@@ -55,7 +66,7 @@ def setup_sidebar():
 
 
     all_gene_names = get_gene_names()
-    all_gene_names = ["None"] + all_gene_names
+    all_gene_names = ["Any"] + all_gene_names
     regulator_gene_query = st.sidebar.selectbox(
         "Query gene",
             all_gene_names,
@@ -63,7 +74,7 @@ def setup_sidebar():
             key="query_gene",
             placeholder="Select a regulator gene name or enter one",
             accept_new_options=True,
-            help="Enter full gene name for the regulator. Leave as None to query all genes."
+            help="Enter or select full gene name for the regulator gene. Leave as None to query all genes. List contains all genes for selected species, not just those in the GRN."
 
         )
 
@@ -74,25 +85,32 @@ def setup_sidebar():
         key="target_gene",
         placeholder="Select a target gene name or enter one",
         accept_new_options=True,
-        help="Enter full or partial gene name for the target. Leave as None to query all genes."
+        help="Enter or select full gene name for the target. Leave as None to query all genes. List contains all genes for selected species, not just those in the GRN."
+
     )
-    # regulatory_cluster_query = st.sidebar.text_input(
-    #     "Regulatory Cluster (contains):",
-    #     help="Enter full or partial regulatory cluster name."
-    # )
-    # target_cluster_query = st.sidebar.text_input(
-    #     "Target Cluster (contains):",
-    #     help="Enter full or partial target cluster name."
-    # )
-    # selected_directions = st.sidebar.multiselect(
-    #     "Direction of Regulation:",
-    #     options=direction_options,
-    #     default=[],
-    #     help="Select one or more directions of regulation."
-    # )
+    
+    regulatory_cluster_query = st.sidebar.selectbox(
+        "Regulatory Cluster:",
+        ["Any"]+filters['regulatory_cluster'],
+        help="Select or enter a gene cluster name. Leave as Any keep all clusters.",
+        key="regulatory_cluster",
+    )
+    target_cluster_query = st.sidebar.selectbox(
+        "Target Cluster:",
+        ["Any"]+filters['target_cluster'],
+        key="target_cluster",
+        help="Select or enter a gene cluster name. Leave as Any keep all clusters."
+    )
+    selected_directions = st.sidebar.selectbox(
+        "Direction of Regulation:",
+        ["Any"]+filters['direction'],
+        key="direction",
+        help="Select one or more directions of regulation."
+    )
     
     limit_results = st.sidebar.number_input(
         "Max Results to Display:",
+        key="limit_results",
         min_value=10,
         max_value=5000,
         value=100,
@@ -115,9 +133,43 @@ def main():
     setup_sidebar()
 
     if st.session_state.run_query:
-        query_gene = st.session_state.query_gene
-        query = database.get_regulatory_interactions(query_gene)
-        st.dataframe(query, use_container_width=True)
+        filter_args = {
+            "species_name": "X. elegans",
+            "regulatory_cluster": st.session_state.regulatory_cluster if st.session_state.regulatory_cluster != "Any" else None,
+            "target_cluster": st.session_state.target_cluster if st.session_state.target_cluster != "Any" else None,
+            "directions": st.session_state.direction if st.session_state.direction != "Any" else None,
+
+            "regulator_gene_name": st.session_state.query_gene if st.session_state.query_gene != "Any" else None,
+            "target_gene_name": st.session_state.target_gene if st.session_state.target_gene != "Any" else None,
+
+            "limit": st.session_state.limit_results
+        }
+        with st.spinner("Fetching GRN data..."):
+            try:
+                query = database.get_regulatory_interactions(**filter_args)
+
+                if query:
+                    interactions_df= pd.DataFrame(query)
+                    st.subheader(f"Found {len(interactions_df)} Regulatory Interactions (displaying up to {st.session_state.limit_results}):")
+                    st.dataframe(interactions_df, hide_index=True)
+
+                    @st.cache_data # Cache the dataframe conversion for download
+                    def convert_df_to_csv(df_to_convert):
+                        return df_to_convert.to_csv(index=False).encode('utf-8')
+
+                    csv_download = convert_df_to_csv(interactions_df)
+                    st.download_button(
+                        label="Download results as CSV",
+                        data=csv_download,
+                        file_name="grn_interactions_results.csv",
+                        mime="text/csv",
+                    )
+                else:
+                    st.info("No regulatory interactions found matching your criteria.")
+            except Exception as e:
+                st.error(f"An error occurred while fetching data: {e}")
+                st.exception(e) # Shows the full traceback for debugging
+        
    
 def show_instructions():
 

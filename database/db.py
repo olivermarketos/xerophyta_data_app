@@ -243,7 +243,29 @@ class DB():
         """
         results = self.session.query(models.Species).all()
         return results
-    
+    def get_distinct_values(self, model, column_name, order= True, nulls= False):
+        """
+        Retrieve distinct values from a specified column in a model.
+
+        Args:
+            model: The SQLAlchemy model to query.
+            column_name (str): The name of the column to retrieve distinct values from.
+            order (bool): Whether to order the results alphabetically. Default is True.
+            nulls (bool): Whether to include NULL values in the results. Default is False.
+
+        Returns:
+            list: A list of distinct values from the specified column.
+        """
+        column = getattr(model, column_name)
+        query = self.session.query(column).distinct()
+        if order:
+            query = query.order_by(column.asc())
+        values = [row[0] for row in query]
+
+        if not nulls:
+            values = [value for value in values if value is not None]
+        return values
+      
     def get_gene_by_name(self, gene_name):
         query = self.session.query(models.Gene).filter_by(gene_name=gene_name).first()
         return query
@@ -266,7 +288,6 @@ class DB():
 
 
         return query.all()
-
 
 
 

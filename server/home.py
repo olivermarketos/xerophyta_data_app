@@ -67,6 +67,12 @@ with st.expander("_click to expand_", expanded=True, icon="ℹ️"):
     st.page_link("server/expression_page.py", label="Click here for Gene expression page", icon="📊")
     st.write("Add info about page")
 
+    st.divider()
+
+    st.markdown("#### Gene Regulatory Network page")
+    st.page_link("server/grn_explorer.py", label="Click here for Gene expression page", icon="🌐")
+    st.write("Add info about page")
+
 
 st.divider()
 
