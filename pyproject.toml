@@ -8,9 +8,13 @@ dependencies = [
     "alembic>=1.16.1",
     "biopython>=1.85",
     "matplotlib>=3.10.3",
+    "networkx>=3.5",
     "numpy>=2.2.6",
     "pandas>=2.3.0",
     "pyarrow>=20.0.0",
+    "pyvis>=0.3.2",
     "sqlalchemy>=2.0.41",
     "streamlit>=1.45.1",
+    "pytest>=8.0.0",
+    "pytest-mock>=3.12.0",
 ]
