@@ -6,6 +6,8 @@ from utils.constants import GENE_SELECTION_OPTIONS
 from utils.helper_functions import parse_input, retreive_query_data
 from database.models import RegulatoryInteraction, Gene, Species
 
+
+
 st.title("Xerophyta Database Explorer")
 st.divider()
 database = db.DB()
