@@ -812,4 +812,165 @@ class DB():
         return results
     
     
-   
+    def delete_genes_by_names(self, gene_names, cleanup_orphans=False, dry_run=False):
+        """
+        Delete genes and all their associated data from the database by gene names.
+        
+        Parameters:
+            gene_names (list): List of gene names to delete
+            cleanup_orphans (bool): Whether to clean up orphaned GO/Enzyme/InterPro records
+            dry_run (bool): If True, return what would be deleted without actually deleting
+            
+        Returns:
+            dict: Summary of deletion operation with counts of deleted records
+        """
+        if isinstance(gene_names, str):
+            gene_names = [gene_names]
+            
+        print(f"{'DRY RUN: ' if dry_run else ''}Attempting to delete {len(gene_names)} genes...")
+        
+        deletion_summary = {
+            'genes_requested': len(gene_names),
+            'genes_found': 0,
+            'genes_deleted': 0,
+            'genes_not_found': [],
+            'annotations_deleted': 0,
+            'gene_expressions_deleted': 0,
+            'differential_expressions_deleted': 0,
+            'regulatory_interactions_deleted': 0,
+            'arabidopsis_homologue_associations_removed': 0,
+            'orphaned_records_cleaned': 0,
+            'success': False,
+            'error_message': None
+        }
+        
+        try:
+            # Start transaction (rollback happens in except block)
+            pass
+            
+            # Phase 1: Find and validate genes
+            genes_to_delete = []
+            for gene_name in gene_names:
+                gene = self.session.query(models.Gene).filter_by(gene_name=gene_name).first()
+                if gene:
+                    genes_to_delete.append(gene)
+                    deletion_summary['genes_found'] += 1
+                    print(f"Found gene: {gene_name} (ID: {gene.id})")
+                else:
+                    deletion_summary['genes_not_found'].append(gene_name)
+                    print(f"Gene not found: {gene_name}")
+            
+            if not genes_to_delete:
+                print("No genes found to delete.")
+                deletion_summary['success'] = True
+                return deletion_summary
+            
+            # Phase 2: Count associated records before deletion
+            for gene in genes_to_delete:
+                # Count annotations
+                annotations_count = self.session.query(models.Annotation).filter_by(gene_id=gene.id).count()
+                deletion_summary['annotations_deleted'] += annotations_count
+                
+                # Count gene expressions
+                expressions_count = self.session.query(models.Gene_expressions).filter_by(gene_id=gene.id).count()
+                deletion_summary['gene_expressions_deleted'] += expressions_count
+                
+                # Count differential expressions
+                diff_expr_count = self.session.query(models.DifferentialExpression).filter_by(gene_id=gene.id).count()
+                deletion_summary['differential_expressions_deleted'] += diff_expr_count
+                
+                # Count regulatory interactions (both as regulator and target)
+                regulator_interactions = self.session.query(models.RegulatoryInteraction).filter_by(regulator_gene_id=gene.id).count()
+                target_interactions = self.session.query(models.RegulatoryInteraction).filter_by(target_gene_id=gene.id).count()
+                deletion_summary['regulatory_interactions_deleted'] += regulator_interactions + target_interactions
+                
+                # Count arabidopsis homologue associations
+                homologue_associations = len(gene.arabidopsis_homologues)
+                deletion_summary['arabidopsis_homologue_associations_removed'] += homologue_associations
+                
+                print(f"Gene {gene.gene_name}: {annotations_count} annotations, {expressions_count} expressions, "
+                      f"{diff_expr_count} diff expressions, {regulator_interactions + target_interactions} interactions, "
+                      f"{homologue_associations} homologue associations")
+            
+            if dry_run:
+                print("DRY RUN: Would delete the above records")
+                deletion_summary['success'] = True
+                return deletion_summary
+            
+            # Phase 3: Actual deletion
+            print("Proceeding with deletion...")
+            
+            # Delete genes (this will cascade to most related tables)
+            for gene in genes_to_delete:
+                # Clear many-to-many relationships first
+                gene.arabidopsis_homologues.clear()
+                
+                # Delete the gene (SQLAlchemy will handle cascading deletes)
+                self.session.delete(gene)
+                deletion_summary['genes_deleted'] += 1
+                print(f"Deleted gene: {gene.gene_name}")
+            
+            # Phase 4: Optional cleanup of orphaned records
+            if cleanup_orphans:
+                orphaned_count = self._cleanup_orphaned_annotation_records()
+                deletion_summary['orphaned_records_cleaned'] = orphaned_count
+                print(f"Cleaned up {orphaned_count} orphaned annotation records")
+            
+            # Commit the transaction
+            self.session.commit()
+            deletion_summary['success'] = True
+            
+            print(f"Successfully deleted {deletion_summary['genes_deleted']} genes and all associated data")
+            
+        except Exception as e:
+            if not dry_run:
+                self.session.rollback()
+            deletion_summary['error_message'] = str(e)
+            print(f"Error during deletion: {e}")
+            print("Transaction rolled back")
+        
+        return deletion_summary
+    
+    def _cleanup_orphaned_annotation_records(self):
+        """
+        Clean up orphaned GO, EnzymeCode, and InterPro records that are no longer
+        associated with any annotations.
+        
+        Returns:
+            int: Number of orphaned records cleaned up
+        """
+        cleaned_count = 0
+        
+        # Clean up orphaned GO records
+        orphaned_go = self.session.query(models.GO).filter(
+            ~models.GO.annotations.any()
+        ).all()
+        for go in orphaned_go:
+            self.session.delete(go)
+            cleaned_count += 1
+        
+        # Clean up orphaned EnzymeCode records  
+        orphaned_enzyme = self.session.query(models.EnzymeCode).filter(
+            ~models.EnzymeCode.annotations.any()
+        ).all()
+        for enzyme in orphaned_enzyme:
+            self.session.delete(enzyme)
+            cleaned_count += 1
+            
+        # Clean up orphaned InterPro records
+        orphaned_interpro = self.session.query(models.InterPro).filter(
+            ~models.InterPro.annotations.any()
+        ).all()
+        for interpro in orphaned_interpro:
+            self.session.delete(interpro)
+            cleaned_count += 1
+            
+        # Clean up orphaned ArabidopsisHomologue records
+        orphaned_homologues = self.session.query(models.ArabidopsisHomologue).filter(
+            ~models.ArabidopsisHomologue.genes.any()
+        ).all()
+        for homologue in orphaned_homologues:
+            self.session.delete(homologue)
+            cleaned_count += 1
+            
+        return cleaned_count
