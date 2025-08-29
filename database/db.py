@@ -897,18 +897,17 @@ class DB():
                 deletion_summary['success'] = True
                 return deletion_summary
             
-            # Phase 3: Actual deletion
+            # Phase 3: Clean deletion using SQLAlchemy relationships with cascade
             print("Proceeding with deletion...")
             
-            # Delete genes (this will cascade to most related tables)
             for gene in genes_to_delete:
-                # Clear many-to-many relationships first
-                gene.arabidopsis_homologues.clear()
+                gene_name = gene.gene_name
                 
-                # Delete the gene (SQLAlchemy will handle cascading deletes)
+                # With cascade="all, delete-orphan" in the model relationships,
+                # SQLAlchemy will automatically handle deleting related records
                 self.session.delete(gene)
                 deletion_summary['genes_deleted'] += 1
-                print(f"Deleted gene: {gene.gene_name}")
+                print(f"Deleted gene: {gene_name}")
             
             # Phase 4: Optional cleanup of orphaned records
             if cleanup_orphans:
@@ -934,43 +933,49 @@ class DB():
     def _cleanup_orphaned_annotation_records(self):
         """
         Clean up orphaned GO, EnzymeCode, and InterPro records that are no longer
-        associated with any annotations.
+        associated with any annotations. Uses efficient SQL with LEFT JOINs.
         
         Returns:
             int: Number of orphaned records cleaned up
         """
         cleaned_count = 0
         
-        # Clean up orphaned GO records
-        orphaned_go = self.session.query(models.GO).filter(
-            ~models.GO.annotations.any()
-        ).all()
-        for go in orphaned_go:
-            self.session.delete(go)
-            cleaned_count += 1
+        print("Cleaning up orphaned annotation records...")
         
-        # Clean up orphaned EnzymeCode records  
-        orphaned_enzyme = self.session.query(models.EnzymeCode).filter(
-            ~models.EnzymeCode.annotations.any()
-        ).all()
-        for enzyme in orphaned_enzyme:
-            self.session.delete(enzyme)
-            cleaned_count += 1
+        # Clean up orphaned GO records using efficient LEFT JOIN
+        orphaned_go_count = self.session.execute(
+            f"""DELETE FROM GO WHERE id NOT IN (
+                SELECT DISTINCT go_id FROM annotations_go
+            )"""
+        ).rowcount
+        cleaned_count += orphaned_go_count
+        print(f"Cleaned {orphaned_go_count} orphaned GO records")
+        
+        # Clean up orphaned EnzymeCode records
+        orphaned_enzyme_count = self.session.execute(
+            f"""DELETE FROM enzyme_codes WHERE id NOT IN (
+                SELECT DISTINCT enzyme_code_id FROM annotations_enzyme_codes
+            )"""
+        ).rowcount
+        cleaned_count += orphaned_enzyme_count
+        print(f"Cleaned {orphaned_enzyme_count} orphaned enzyme code records")
             
         # Clean up orphaned InterPro records
-        orphaned_interpro = self.session.query(models.InterPro).filter(
-            ~models.InterPro.annotations.any()
-        ).all()
-        for interpro in orphaned_interpro:
-            self.session.delete(interpro)
-            cleaned_count += 1
+        orphaned_interpro_count = self.session.execute(
+            f"""DELETE FROM interpro WHERE id NOT IN (
+                SELECT DISTINCT interpro_id FROM annotations_interpro
+            )"""
+        ).rowcount
+        cleaned_count += orphaned_interpro_count
+        print(f"Cleaned {orphaned_interpro_count} orphaned InterPro records")
             
         # Clean up orphaned ArabidopsisHomologue records
-        orphaned_homologues = self.session.query(models.ArabidopsisHomologue).filter(
-            ~models.ArabidopsisHomologue.genes.any()
-        ).all()
-        for homologue in orphaned_homologues:
-            self.session.delete(homologue)
-            cleaned_count += 1
+        orphaned_homologue_count = self.session.execute(
+            f"""DELETE FROM arabidopsis_homologues WHERE id NOT IN (
+                SELECT DISTINCT homologue_id FROM gene_homologue_association
+            )"""
+        ).rowcount
+        cleaned_count += orphaned_homologue_count
+        print(f"Cleaned {orphaned_homologue_count} orphaned Arabidopsis homologue records")
             
         return cleaned_count

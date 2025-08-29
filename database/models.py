@@ -62,12 +62,12 @@ class Gene(Base):
     coding_sequence = Column(Text, nullable=True)
 
     species = relationship("Species", back_populates="genes")
-    annotations = relationship("Annotation", back_populates="gene")
+    annotations = relationship("Annotation", back_populates="gene", cascade="all, delete-orphan")
     arabidopsis_homologues = relationship('ArabidopsisHomologue',
                               secondary=gene_homologue_association,
                             back_populates='genes')
-    gene_expressions = relationship("Gene_expressions", back_populates="genes")
-    differential_expression = relationship("DifferentialExpression", back_populates="gene") 
+    gene_expressions = relationship("Gene_expressions", back_populates="genes", cascade="all, delete-orphan")
+    differential_expression = relationship("DifferentialExpression", back_populates="gene", cascade="all, delete-orphan") 
 
 
    # Interactions where this gene is the REGULATOR
