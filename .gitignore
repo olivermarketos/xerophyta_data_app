@@ -12,3 +12,4 @@ all_data
 __pycache__/
 *.pyc
 *.pyo
+backups/
