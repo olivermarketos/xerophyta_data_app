@@ -46,8 +46,8 @@ def add_gene_sequence_from_fasta(filename, species_id):
     database.create_or_update(models.Gene, records, ["gene_name"])
     print("Done")
 
-def parse_annotations(filename):
-    df = pd.read_csv(filename)
+def parse_annotations(filename, sep=","):
+    df = pd.read_csv(filename, sep=sep)
 
      # Split columns with lists (GO IDs, GO Names, etc.)
     df["GO IDs"] = df["GO IDs"].str.split("; ")
@@ -71,9 +71,10 @@ def map_genes_to_ids(species_id):
         gene_dict[gene.gene_name] = gene.id
     return gene_dict
 
-def add_gene_annotations(filename, species_id):
+def add_gene_annotations(filename, species_id, sep=","):
     database = db.DB()
-    annotations_df = parse_annotations(filename)
+    annotations_df = parse_annotations(filename, sep=sep)
+     # map gene names to gene ids
     gene_dict = map_genes_to_ids(species_id)
 
     for _, row in annotations_df.iterrows():
