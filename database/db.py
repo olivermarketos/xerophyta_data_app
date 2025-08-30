@@ -812,7 +812,7 @@ class DB():
         return results
     
     
-    def delete_genes_by_names(self, gene_names, cleanup_orphans=False, dry_run=False):
+    def delete_genes_by_names(self, gene_names, dry_run=False):
         """
         Delete genes and all their associated data from the database by gene names.
         
@@ -909,12 +909,7 @@ class DB():
                 deletion_summary['genes_deleted'] += 1
                 print(f"Deleted gene: {gene_name}")
             
-            # Phase 4: Optional cleanup of orphaned records
-            if cleanup_orphans:
-                orphaned_count = self._cleanup_orphaned_annotation_records()
-                deletion_summary['orphaned_records_cleaned'] = orphaned_count
-                print(f"Cleaned up {orphaned_count} orphaned annotation records")
-            
+           
             # Commit the transaction
             self.session.commit()
             deletion_summary['success'] = True
@@ -930,52 +925,3 @@ class DB():
         
         return deletion_summary
     
-    def _cleanup_orphaned_annotation_records(self):
-        """
-        Clean up orphaned GO, EnzymeCode, and InterPro records that are no longer
-        associated with any annotations. Uses efficient SQL with LEFT JOINs.
-        
-        Returns:
-            int: Number of orphaned records cleaned up
-        """
-        cleaned_count = 0
-        
-        print("Cleaning up orphaned annotation records...")
-        
-        # Clean up orphaned GO records using efficient LEFT JOIN
-        orphaned_go_count = self.session.execute(
-            f"""DELETE FROM GO WHERE id NOT IN (
-                SELECT DISTINCT go_id FROM annotations_go
-            )"""
-        ).rowcount
-        cleaned_count += orphaned_go_count
-        print(f"Cleaned {orphaned_go_count} orphaned GO records")
-        
-        # Clean up orphaned EnzymeCode records
-        orphaned_enzyme_count = self.session.execute(
-            f"""DELETE FROM enzyme_codes WHERE id NOT IN (
-                SELECT DISTINCT enzyme_code_id FROM annotations_enzyme_codes
-            )"""
-        ).rowcount
-        cleaned_count += orphaned_enzyme_count
-        print(f"Cleaned {orphaned_enzyme_count} orphaned enzyme code records")
-            
-        # Clean up orphaned InterPro records
-        orphaned_interpro_count = self.session.execute(
-            f"""DELETE FROM interpro WHERE id NOT IN (
-                SELECT DISTINCT interpro_id FROM annotations_interpro
-            )"""
-        ).rowcount
-        cleaned_count += orphaned_interpro_count
-        print(f"Cleaned {orphaned_interpro_count} orphaned InterPro records")
-            
-        # Clean up orphaned ArabidopsisHomologue records
-        orphaned_homologue_count = self.session.execute(
-            f"""DELETE FROM arabidopsis_homologues WHERE id NOT IN (
-                SELECT DISTINCT homologue_id FROM gene_homologue_association
-            )"""
-        ).rowcount
-        cleaned_count += orphaned_homologue_count
-        print(f"Cleaned {orphaned_homologue_count} orphaned Arabidopsis homologue records")
-            
-        return cleaned_count
