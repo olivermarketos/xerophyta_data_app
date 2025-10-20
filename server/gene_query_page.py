@@ -30,19 +30,30 @@ ALL_COLUMNS = [
         ]
 
 def initialise_session_state():
-    if "run_query" not in st.session_state:
-        st.session_state.run_query = False
-    if "input_genes" not in st.session_state:
-        st.session_state.input_genes = ""
+    """Initialize all session state variables with defaults to prevent KeyErrors"""
+    defaults = {
+        "run_query": False,
+        "input_genes": "",
+        "species": "Any",
+        "gene_selection": list(GENE_SELECTION_OPTIONS.keys())[0],
+        "gene_input_type": GENE_SELECTION_OPTIONS[list(GENE_SELECTION_OPTIONS.keys())[0]]["key"],
+        "selected_columns": ALL_COLUMNS,
+    }
+    for key, default_value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = default_value
     
 
 def setup_sidebar():
     st.sidebar.header("Search Inputs")
-    
+
     # Species selection
     species_list = database.get_species()
     species_options = ["Any"] + [sp.name for sp in species_list]
-    selected_species = st.sidebar.selectbox("Select Species (optional):", species_options)
+
+    # Get current species index for selectbox
+    species_index = species_options.index(st.session_state.species) if st.session_state.species in species_options else 0
+    selected_species = st.sidebar.selectbox("Select Species (optional):", species_options, index=species_index)
     st.session_state.species = selected_species
 
     # Query inputs
@@ -70,14 +81,15 @@ def setup_sidebar():
 def main():
     initialise_session_state()
 
+    # Setup sidebar first to ensure all session state values are populated
+    setup_sidebar()
+
     if st.sidebar.button("Run Query"):
         st.session_state.run_query = True
-    
+
     if st.sidebar.button("Show Instructions") or not st.session_state.run_query:
         show_instructions()
         st.session_state.run_query = False
-
-    setup_sidebar()
 
     if st.session_state.run_query:
         input_genes = st.session_state.input_genes

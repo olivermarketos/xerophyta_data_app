@@ -18,22 +18,58 @@ PLOT_DISPLAY_OPTIONS = ["Genes on single plot", "Genes on separate plot"]
 
 
 def initialise_session_state():
-    if "generate_clicked" not in st.session_state:
-        st.session_state.generate_clicked = False
-    if "input_genes" not in st.session_state:
-        st.session_state.input_genes = ""
-    if "show_raw_data" not in st.session_state:
-        st.session_state.show_raw_data = False
+    """Initialize all session state variables with defaults to prevent KeyErrors"""
+    defaults = {
+        "generate_clicked": False,
+        "input_genes": "",
+        "show_raw_data": False,
+        "species": None,
+        "experiment": None,
+        "gene_selection": list(GENE_SELECTION_OPTIONS.keys())[0],
+        "gene_input_type": GENE_SELECTION_OPTIONS[list(GENE_SELECTION_OPTIONS.keys())[0]]["key"],
+        "expression_values": EXPRESSION_PLOT_OPTIONS[0],
+        "filter_deg": list(DEG_FILTER_OPTIONS.keys())[0],
+        "plot_type": PLOT_DISPLAY_OPTIONS[0],
+    }
+    for key, default_value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = default_value
 
 def setup_sidebar():
 
     # Define selection options
     species = [species.name for species in database.get_species()]
-    selected_species = st.sidebar.radio("Select a species:", species, key="species")
-    
+
+    # Initialize species if not set
+    if st.session_state.species is None and species:
+        st.session_state.species = species[0]
+
+    # Get current species index for radio button
+    species_index = species.index(st.session_state.species) if st.session_state.species in species else 0
+    selected_species = st.sidebar.radio("Select a species:", species, index=species_index, key="species")
+
+    # Detect species change and reset experiment selection
+    if "previous_species" not in st.session_state:
+        st.session_state.previous_species = selected_species
+    elif st.session_state.previous_species != selected_species:
+        st.session_state.experiment = None
+        st.session_state.previous_species = selected_species
+
+    # Get experiments for selected species
     experiments = [experiment.experiment_name for experiment in database.get_experiments_by_species(selected_species)]
-    selected_experiment = st.sidebar.radio("Select a dataset:", experiments, key="experiment")
-    
+
+    # Validate and set experiment default
+    if not experiments:
+        st.session_state.experiment = None
+        st.warning(f"No experiments available for {selected_species}")
+    elif st.session_state.experiment not in experiments:
+        st.session_state.experiment = experiments[0]
+
+    # Create experiment radio button with proper index
+    if experiments:
+        experiment_index = experiments.index(st.session_state.experiment) if st.session_state.experiment in experiments else 0
+        selected_experiment = st.sidebar.radio("Select a dataset:", experiments, index=experiment_index, key="experiment")
+
     selected_gene_selection = st.sidebar.radio("Gene selection method:", list(GENE_SELECTION_OPTIONS.keys()), key="gene_selection")
 
     # Gene input field based on selection
@@ -173,33 +209,38 @@ def show_missing_genes(genes):
 def main():
     initialise_session_state()
 
+    # Setup sidebar first to ensure all session state values are populated
+    setup_sidebar()
 
     if st.sidebar.button("Generate plots"):
         st.session_state.generate_clicked = True
- 
+
     if st.sidebar.button("Show Instructions") or not st.session_state.generate_clicked:
         show_instructions()
         st.session_state.generate_clicked = False
 
-    setup_sidebar()
-
     if st.session_state.generate_clicked:
         input_genes = st.session_state.input_genes
-        # input_genes = st.session_state.input_genes
+
+        # Validate that experiment is selected
+        if st.session_state.experiment is None:
+            st.error("Please select a dataset before generating plots.")
+            return
+
         if input_genes:
             selected_species = st.session_state.species
             input_genes = parse_input(input_genes)
             rna_seq_data = []
 
             gene_data, matched_input, missing_input = retreive_query_data(input_genes, selected_species, st.session_state.gene_input_type)
-            
-            xerophyta_genes = [gene.gene_name for gene in gene_data]           
+
+            xerophyta_genes = [gene.gene_name for gene in gene_data]
 
             # Fetch RNA-seq data and apply DEG filtering
             selected_filter = DEG_FILTER_OPTIONS[st.session_state.filter_deg]
             rna_seq_data = database.get_gene_expression_data(
-                xerophyta_genes, 
-                st.session_state.experiment, 
+                xerophyta_genes,
+                st.session_state.experiment,
                 filter_deg=selected_filter
             )
 
