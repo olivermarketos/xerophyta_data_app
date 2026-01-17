@@ -53,25 +53,25 @@ with st.expander("_click to expand_", expanded=True, icon= "🌱"):
         col2.write("Some description about species and experiments, links etc...")
 
     with tab4:
-        st.subheader("EvoDyn lab")
+        st.subheader("EvoDevo lab")
 st.subheader("Interface description")
 
 with st.expander("_click to expand_", expanded=True, icon="ℹ️"):
     st.markdown("#### Gene info page")
     st.page_link("server/gene_query_page.py", label="Click here for Gene info page", icon="📑")
-    st.write("Add info about page")
+    st.write("Query the database to retrieve gene annotation information including BLAST annotations, Gene Ontology terms, enzyme codes, and InterPro domains. Search by Xerophyta gene ID, Arabidopsis ortholog, GO term, or enzyme code. Results can be downloaded as CSV or FASTA files.")
 
     st.divider()
 
     st.markdown("#### Gene expression page")
     st.page_link("server/expression_page.py", label="Click here for Gene expression page", icon="📊")
-    st.write("Add info about page")
+    st.write("Visualise time-series gene expression profiles during dehydration and rehydration treatments. Filter results by differential expression status (up-regulated, down-regulated, or all genes) and customise plot display options. Expression plots and underlying data can be downloaded.")
 
     st.divider()
 
     st.markdown("#### Gene Regulatory Network page")
-    st.page_link("server/grn_explorer.py", label="Click here for Gene expression page", icon="🌐")
-    st.write("Add info about page")
+    st.page_link("server/grn_explorer.py", label="Click here for Gene Regulatory Network page", icon="🌐")
+    st.write("Explore inferred transcriptional regulatory interactions between transcription factors and their target genes. Filter by regulator gene, target gene, regulatory cluster, or direction of regulation (activation/repression). Currently available for X. elegans only.")
 
 
 st.divider()
