@@ -30,7 +30,7 @@ def setup_sidebar():
     # Define selection options
     # This selects all species in the database, uncomment to use when adding data for other species
     # species = [species.name for species in database.get_species()]
-    species = 'X. elegans' # For now, hard code X. elegans species
+    species = ['X. elegans']  # For now, hard code X. elegans species as a single-option list
     
     selected_species = st.sidebar.radio("Select a species:", species, key="species")
     
