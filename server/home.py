@@ -4,7 +4,7 @@ st.markdown(
         """
        
             # Welcome to _Xerophyta_ Data Explorer!</h3>
-            This tool simplifies the exploration of our transcriptomic datasets. Quickly find information pertaining to _Xerophyta_ genes using their gene names,  _Arabidopsis_ symbols/IDs, GO terms, or protein domains.
+            This tool simplifies the exploration of our transcriptomic datasets. Quickly find information pertaining to _Xerophyta_ genes using their gene names, _Arabidopsis_ IDs, GO terms, or protein domains.
         """,
         unsafe_allow_html=True
     )
@@ -20,12 +20,12 @@ st.markdown(
 # col3.subheader("**X. humilis**")
 # col3.image("server/images/x_humilis_plant.png")
 
-st.subheader("Information")
+st.markdown("### Information")
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["X. elegans", "Gene Info page", "Gene expression page","Gene Regulatory Network page", "About the lab"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["_**X. elegans**_", "**Gene expression page**","**Gene Info page**","**Gene Regulatory Network page**", "**About the lab**"])
 
 with tab1:
-    st.subheader("X. elegans")
+    st.subheader("_X. elegans_")
     # st.link_button("X. elegans", 
     #                type="tertiary", 
     #                url="https://en.wikipedia.org/wiki/Xerophyta_elegans",
@@ -37,19 +37,18 @@ with tab1:
 
 with tab2:
     st.markdown("""
-                - Query the database to retrieve gene annotation information including BLAST annotations, Gene Ontology terms, enzyme codes, and InterPro domains.
-                -  Search by Xerophyta gene ID, Arabidopsis ortholog, GO term, or enzyme code. 
-                - Results can be downloaded as CSV or FASTA files.""")
-    st.page_link("server/gene_query_page.py", label="Click here for Gene info page", icon="📑")
+                - Visualise time-series gene expression profiles during dehydration and rehydration treatments. 
+                - Filter results by differential expression status (up-regulated, down-regulated, or all genes) and customise plot display options. 
+                - Download the expression plots and underlying data.""")
+    st.page_link("server/expression_page.py", label="Click here for Gene expression page", icon="📊")
 
 with tab3:
 
     st.markdown("""
-                - Visualise time-series gene expression profiles during dehydration and rehydration treatments. 
-                - Filter results by differential expression status (up-regulated, down-regulated, or all genes) and customise plot display options. 
-                - Expression plots and underlying data can be downloaded.""")
-    st.page_link("server/expression_page.py", label="Click here for Gene expression page", icon="📊")
-
+                - Query the database to retrieve gene annotation information including BLAST annotations, Gene Ontology terms, enzyme codes, and InterPro domains.
+                -  Search by Xerophyta gene ID, Arabidopsis ortholog, GO term, or enzyme code. 
+                - Results can be downloaded as CSV or FASTA files.""")
+    st.page_link("server/gene_query_page.py", label="Click here for Gene info page", icon="📑")
 with tab4:
     st.markdown("""
                 - Explore inferred transcriptional regulatory interactions between transcription factors and their target genes. 
