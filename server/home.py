@@ -3,8 +3,8 @@ import streamlit as st
 st.markdown(
         """
        
-            # Welcome to Xerophyta Data Explorer!</h3>
-            This tool simplifies the exploration of our transcriptomic datasets. Quickly find Xerophyta genes using Arabidopsis symbols/IDs, GO terms, or protein domains, allowing you to focus on your genes of interest.
+            # Welcome to _Xerophyta_ Data Explorer!</h3>
+            This tool simplifies the exploration of our transcriptomic datasets. Quickly find information pertaining to _Xerophyta_ genes using their gene names,  _Arabidopsis_ symbols/IDs, GO terms, or protein domains.
         """,
         unsafe_allow_html=True
     )
@@ -20,58 +20,46 @@ st.markdown(
 # col3.subheader("**X. humilis**")
 # col3.image("server/images/x_humilis_plant.png")
 
-st.subheader("Xerophyta species information")
-with st.expander("_click to expand_", expanded=True):
-    tab1, tab2, tab3, tab4 = st.tabs(["X. elegans", "X. schlechteri", "X. humilis", "About the lab"])
+st.subheader("Information")
 
-    with tab1:
-        st.subheader("X. elegans")
-        # st.link_button("X. elegans", 
-        #                type="tertiary", 
-        #                url="https://en.wikipedia.org/wiki/Xerophyta_elegans",
-        #                icon="🔗")
-        col1, col2 = st.columns([0.25,0.7], gap="small")
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["X. elegans", "Gene Info page", "Gene expression page","Gene Regulatory Network page", "About the lab"])
 
-        col1.image("server/images/x_elegans_plant.png", width=250 )
-        col2.write("Some description about species and experiments, links etc...")
+with tab1:
+    st.subheader("X. elegans")
+    # st.link_button("X. elegans", 
+    #                type="tertiary", 
+    #                url="https://en.wikipedia.org/wiki/Xerophyta_elegans",
+    #                icon="🔗")
+    col1, col2 = st.columns([0.25,0.7], gap="small")
 
-    with tab2:
-        st.subheader("X. schlechteri")
+    col1.image("server/images/x_elegans_plant.png", width=250 )
+    col2.write("Some description about species and experiments, links etc...")
 
-        col1, col2 = st.columns([0.25,0.7], gap="small")
-
-        col1.image("server/images/x_schlechteri_plant.png", width=250 )
-        col2.write("Some description about species and experiments, links etc...")
-        
-
-    with tab3:
-        st.subheader("**X. humilis**")
-
-        col1, col2 = st.columns([0.25,0.7], gap="small")
-
-        col1.image("server/images/x_humilis_plant.png", width=250 )
-        col2.write("Some description about species and experiments, links etc...")
-
-    with tab4:
-        st.subheader("EvoDevo lab")
-st.subheader("Interface description")
-
-with st.expander("_click to expand_", expanded=True, icon="ℹ️"):
-    st.markdown("#### Gene info page")
+with tab2:
+    st.markdown("""
+                - Query the database to retrieve gene annotation information including BLAST annotations, Gene Ontology terms, enzyme codes, and InterPro domains.
+                -  Search by Xerophyta gene ID, Arabidopsis ortholog, GO term, or enzyme code. 
+                - Results can be downloaded as CSV or FASTA files.""")
     st.page_link("server/gene_query_page.py", label="Click here for Gene info page", icon="📑")
-    st.write("Query the database to retrieve gene annotation information including BLAST annotations, Gene Ontology terms, enzyme codes, and InterPro domains. Search by Xerophyta gene ID, Arabidopsis ortholog, GO term, or enzyme code. Results can be downloaded as CSV or FASTA files.")
 
-    st.divider()
+with tab3:
 
-    st.markdown("#### Gene expression page")
+    st.markdown("""
+                - Visualise time-series gene expression profiles during dehydration and rehydration treatments. 
+                - Filter results by differential expression status (up-regulated, down-regulated, or all genes) and customise plot display options. 
+                - Expression plots and underlying data can be downloaded.""")
     st.page_link("server/expression_page.py", label="Click here for Gene expression page", icon="📊")
-    st.write("Visualise time-series gene expression profiles during dehydration and rehydration treatments. Filter results by differential expression status (up-regulated, down-regulated, or all genes) and customise plot display options. Expression plots and underlying data can be downloaded.")
 
-    st.divider()
-
-    st.markdown("#### Gene Regulatory Network page")
+with tab4:
+    st.markdown("""
+                - Explore inferred transcriptional regulatory interactions between transcription factors and their target genes. 
+                - Filter by regulator gene, target gene, regulatory cluster, or direction of regulation (activation/repression). 
+                """)
     st.page_link("server/grn_explorer.py", label="Click here for Gene Regulatory Network page", icon="🌐")
-    st.write("Explore inferred transcriptional regulatory interactions between transcription factors and their target genes. Filter by regulator gene, target gene, regulatory cluster, or direction of regulation (activation/repression). Currently available for X. elegans only.")
+
+
+with tab5:
+    st.markdown("TODO: insert text")
 
 
 st.divider()
