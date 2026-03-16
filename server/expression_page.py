@@ -276,7 +276,7 @@ def show_instructions():
        #### **Step 4: Generate plots**
         - Click the "Generate" button to retrieve the gene expression information based on the input provided.
         - The plots will be displayed below the input fields.
-        - You can also choose to show and download the raw data by checking the "Show raw data" box.
+        - You can choose to show the raw data by checking the "Show raw data" box, and download it using the download button.
        """
        
     )
