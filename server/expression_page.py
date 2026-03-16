@@ -28,8 +28,12 @@ def initialise_session_state():
 def setup_sidebar():
 
     # Define selection options
-    species = [species.name for species in database.get_species()]
+    # This selects all species in the database, uncomment to use when adding data for other species
+    # species = [species.name for species in database.get_species()]
+    species = 'X. elegans' # For now, hard code X. elegans species
+    
     selected_species = st.sidebar.radio("Select a species:", species, key="species")
+    
     
     experiments = [experiment.experiment_name for experiment in database.get_experiments_by_species(selected_species)]
     selected_experiment = st.sidebar.radio("Select a dataset:", experiments, key="experiment")
@@ -213,21 +217,22 @@ def main():
                     num_genes_retreived = rna_seq_data['gene_name'].nunique()
                     st.write(f"Found {num_genes_retreived} gene(s).")
 
+            
+            if not rna_seq_data.empty:
+                csv_data = rna_seq_data.to_csv(index=False)
+            else:
+                csv_data = "No data was retrieved from the database. Please double-check your input."
+            timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            file_name = f"Xerophyta_gene_expression_results_{timestamp_str}.csv"
+        
+            st.download_button(
+                label="Download raw data as CSV",
+                data=csv_data,
+                file_name=file_name,
+                mime="text/csv"
+            )
             if st.checkbox("Show raw data"):
                 show_raw_data(rna_seq_data)
-                if not rna_seq_data.empty:
-                    csv_data = rna_seq_data.to_csv(index=False)
-                else:
-                    csv_data = "No data was retrieved from the database. Please double-check your input."
-                timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                file_name = f"Xerophyta_gene_expression_results_{timestamp_str}.csv"
-            
-                st.download_button(
-                    label="Download raw data as CSV",
-                    data=csv_data,
-                    file_name=file_name,
-                    mime="text/csv"
-                )
 
         else:
             st.markdown("Please enter at least one gene ID")
@@ -271,7 +276,7 @@ def show_instructions():
        #### **Step 4: Generate plots**
         - Click the "Generate" button to retrieve the gene expression information based on the input provided.
         - The plots will be displayed below the input fields.
-        - You can also choose to show the raw data by checking the "Show raw data" box.
+        - You can also choose to show and download the raw data by checking the "Show raw data" box.
        """
        
     )
