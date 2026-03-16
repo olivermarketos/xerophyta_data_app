@@ -3,7 +3,7 @@ import streamlit as st
 st.markdown(
         """
        
-            # Welcome to _Xerophyta_ Data Explorer!</h3>
+            # Welcome to _Xerophyta_ Data Explorer!
             This tool simplifies the exploration of our transcriptomic datasets. Quickly find information pertaining to _Xerophyta_ genes using their gene names, _Arabidopsis_ IDs, GO terms, or protein domains.
         """,
         unsafe_allow_html=True
