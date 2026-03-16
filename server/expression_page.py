@@ -220,17 +220,17 @@ def main():
             
             if not rna_seq_data.empty:
                 csv_data = rna_seq_data.to_csv(index=False)
+                timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                file_name = f"Xerophyta_gene_expression_results_{timestamp_str}.csv"
+
+                st.download_button(
+                    label="Download raw data as CSV",
+                    data=csv_data,
+                    file_name=file_name,
+                    mime="text/csv"
+                )
             else:
-                csv_data = "No data was retrieved from the database. Please double-check your input."
-            timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            file_name = f"Xerophyta_gene_expression_results_{timestamp_str}.csv"
-        
-            st.download_button(
-                label="Download raw data as CSV",
-                data=csv_data,
-                file_name=file_name,
-                mime="text/csv"
-            )
+                st.warning("No data was retrieved from the database. Please double-check your input.")
             if st.checkbox("Show raw data"):
                 show_raw_data(rna_seq_data)
 
