@@ -21,7 +21,7 @@ st.markdown(
 # col3.image("server/images/x_humilis_plant.png")
 
 st.subheader("Xerophyta species information")
-with st.expander("_click to expand_", expanded=True, icon= "🌱"):
+with st.expander("_click to expand_", expanded=True):
     tab1, tab2, tab3, tab4 = st.tabs(["X. elegans", "X. schlechteri", "X. humilis", "About the lab"])
 
     with tab1:
