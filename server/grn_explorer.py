@@ -8,8 +8,6 @@ from database.models import RegulatoryInteraction, Gene, Species
 from sqlalchemy.orm import aliased
 from sqlalchemy import func
 
-#TODO allow selecting more than one TF group at a time, loop over each group and agg results?
-
 @st.cache_data
 def get_clusters(tf, verbose=False):
 
@@ -45,6 +43,7 @@ def get_clusters(tf, verbose=False):
         )
     return query.all()
 
+@st.cache_data
 def get_gene_groups(genes):
     
     if not genes:
@@ -134,13 +133,11 @@ if gene_info.open:
                     - Enter _X. elegans_ ID and retrieve all the TF and Target gene groups 
                     """)
         
-        # Grab gene names from DB and show list to user, but only allows for selecting one at a time
-        # x_elegans_genes = get_genes_list()
-        # selected_gene = st.selectbox("Enter gene ID",x_elegans_genes, index=None,label_visibility="hidden", placeholder="Select an X elegans gene ID...")
-        selected_genes = parse_input(st.text_area("Enter X. elegans gene IDs separated by space, comma or new line"))
+        with st.form("gene_search_form"):
+            selected_genes = parse_input(st.text_area("Enter X. elegans gene IDs separated by space, comma or new line"))
+            submit_button = st.form_submit_button("Search Genes")
 
-        gene_groups = get_gene_groups(selected_genes)
-        if selected_genes:
+        if submit_button and selected_genes:
             gene_groups = get_gene_groups(selected_genes)
             
             # Transform results into a single DataFrame
