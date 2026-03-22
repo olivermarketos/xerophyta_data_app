@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime 
-import database.db as db  # Your custom db module
+import database.db as db  
 from utils.constants import GENE_SELECTION_OPTIONS
 from utils.helper_functions import parse_input, retreive_query_data
 from database.models import RegulatoryInteraction, Gene, Species
@@ -45,33 +45,44 @@ def get_clusters(tf, verbose=False):
         )
     return query.all()
 
-def get_gene_groups(gene):
+def get_gene_groups(genes):
+    
+    if not genes:
+        return {}
+  
     RegulatorGene = aliased(Gene)
     TargetGene = aliased(Gene)
-    
-    target_clusters = (
+
+    target_results =(
             database.session.query(
-            RegulatoryInteraction.target_cluster
-            )
-            .join(TargetGene, RegulatoryInteraction.target_gene_id == TargetGene.id)
-            .filter(
-                 TargetGene.gene_name == gene
-            ).distinct()
+                TargetGene.gene_name,
+                RegulatoryInteraction.target_cluster
+                )
+                .join(TargetGene, RegulatoryInteraction.target_gene_id == TargetGene.id)
+                .filter(
+                    TargetGene.gene_name.in_(genes)
+                ).distinct()
+                ).all()
+
+    regulator_results =  ( 
+                database.session.query(
+                RegulatorGene.gene_name,
+                RegulatoryInteraction.regulatory_cluster,
+                )
+                .join(RegulatorGene, RegulatoryInteraction.regulator_gene_id == RegulatorGene.id)
+                .filter(
+                    RegulatorGene.gene_name.in_(genes) 
+                ).distinct()
             ).all()
-    regulatory_clusters =  ( 
-            database.session.query(
-            RegulatoryInteraction.regulatory_cluster,
-            )
-            .join(RegulatorGene, RegulatoryInteraction.regulator_gene_id == RegulatorGene.id)
-            .filter(
-                RegulatorGene.gene_name == gene 
-            ).distinct()
-        ).all()
+
+    results = {gene: {'target_clusters':[],"regulatory_clusters":[]} for gene in genes}
+    for gene_name, target_cluster in target_results:
+        results[gene_name]["target_clusters"].append((target_cluster,))
     
-    results = {"target_clusters":target_clusters, "regulatory_clusters":regulatory_clusters}
-
+    for gene_name, reg_cluster in regulator_results:
+        results[gene_name]["regulatory_clusters"].append((reg_cluster,))
+    
     return results
-
 
 @st.cache_data
 def get_tf_groups():
@@ -114,28 +125,33 @@ if clusters.open:
         clusters = get_clusters(selected_tf, verbose)
         if selected_tf is not None:
             st.dataframe(clusters)
+            st.caption("💡 Tip: Data can be downloaded as CSV using button in top-right corner of the table")
+
 
 if gene_info.open:
     with gene_info:
         st.markdown("""
                     - Enter _X. elegans_ ID and retrieve all the TF and Target gene groups 
                     """)
-        x_elegans_genes = get_genes_list()
-        selected_gene = st.selectbox("Enter gene ID",x_elegans_genes, index=None,label_visibility="hidden", placeholder="Select an X elegans gene ID...")
-        gene_groups = get_gene_groups(selected_gene)
-        if selected_gene is not None:
-            gene_groups = get_gene_groups(selected_gene)
+        
+        # Grab gene names from DB and show list to user, but only allows for selecting one at a time
+        # x_elegans_genes = get_genes_list()
+        # selected_gene = st.selectbox("Enter gene ID",x_elegans_genes, index=None,label_visibility="hidden", placeholder="Select an X elegans gene ID...")
+        selected_genes = parse_input(st.text_area("Enter X. elegans gene IDs separated by space, comma or new line"))
+
+        gene_groups = get_gene_groups(selected_genes)
+        if selected_genes:
+            gene_groups = get_gene_groups(selected_genes)
             
-            # Display regulatory clusters (where gene is a regulator)
-            st.subheader("Regulatory Clusters")
-            if gene_groups['regulatory_clusters']:
-                st.dataframe(gene_groups['regulatory_clusters'])
-            else:
-                st.info(f"No regulatory clusters found where {selected_gene} acts as a regulator.")
+            # Transform results into a single DataFrame
+            display_data = []
+            for gene in gene_groups:
+                display_data.append({
+                    "Gene ID": gene,
+                    "Regulatory Clusters": ", ".join([cluster[0] for cluster in gene_groups[gene]['regulatory_clusters']]) if gene_groups[gene]['regulatory_clusters'] else "None",
+                    "Target Clusters": ", ".join([cluster[0] for cluster in gene_groups[gene]['target_clusters']]) if gene_groups[gene]['target_clusters'] else "None"
+                })
             
-            # Display target clusters (where gene is a target)
-            st.subheader("Target Clusters")
-            if gene_groups['target_clusters']:
-                st.dataframe(gene_groups['target_clusters'])
-            else:
-                st.info(f"No target clusters found where {selected_gene} is a target.")
+            df = pd.DataFrame(display_data)
+            st.dataframe(df, hide_index=True, use_container_width=True)
+            st.caption("💡 Tip: Data can be downloaded as CSV using button in top-right corner of the table")
