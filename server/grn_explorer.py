@@ -75,7 +75,7 @@ def get_gene_groups(gene):
 
 @st.cache_data
 def get_tf_groups():
-    result = [r[0] for r in database.session.query(RegulatoryInteraction.regulatory_cluster).distinct()]
+    result = sorted([r[0] for r in database.session.query(RegulatoryInteraction.regulatory_cluster).distinct()])
     return result
 
 @st.cache_data
