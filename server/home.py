@@ -26,14 +26,18 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["_**X. elegans**_", "**Gene expression p
 
 with tab1:
     st.subheader("_X. elegans_")
-    # st.link_button("X. elegans", 
-    #                type="tertiary", 
-    #                url="https://en.wikipedia.org/wiki/Xerophyta_elegans",
-    #                icon="🔗")
+    
     col1, col2 = st.columns([0.25,0.7], gap="small")
 
     col1.image("server/images/x_elegans_plant.png", width=250 )
-    col2.write("Some description about species and experiments, links etc...")
+    col2.markdown("""
+The genus _Xerophyta_, found in the subtropical regions of sub-Saharan Africa, Madagascar, and the Arabian Peninsula, contains 45 species, all of which exhibit vegetative desiccation tolerance. _Xerophyta elegans_ (formerly _Talbotia elegans_) is the only homoiochlorophyllous _Xerophyta_ species, all other _Xerophyta_ species are poikilochlorophyllous, degrading chlorophyll and dismantling plastids during desiccation. The dry leaves of _X. elegans_, which retain their chlorophyll are protected from photodamage by purple anthocyanins, and by their growth in deep shade along forested riverbanks or in the shadow of cave or cliff overhangs, in the foothills of the Drakensberg in South Africa.
+
+This _X. elegans_ seedlings time-course transcriptome dataset comprises samples taken from seven time points while two leaf stage seedlings dehydrate, in an controlled environment,  from full hydration to less than 5% relative water content over 72 hours, and seven time points when the rehydrate over 48 hours.
+
+**Reference:**
+Kabwe E.N.K, Edwards M.P., Lyall R., Ngcala M., Schlebusch S.A., Marketos, O.P., VanBuren R., , Zoran Nikoloski Z., Ingle R.A. and Illing N. Transcriptional regulation of the response to water availability in the resurrection plant Xerophyta elegans. Submitted manuscript.
+""")
 
 with tab2:
     st.markdown("""
@@ -52,7 +56,7 @@ with tab3:
 with tab4:
     st.markdown("""
                 - Explore inferred transcriptional regulatory interactions between transcription factors and their target genes. 
-                - Filter by regulator gene, target gene, regulatory cluster, or direction of regulation (activation/repression). 
+                - Query info on a genes regulatory clusters and direction of regulation 
                 """)
     st.page_link("server/grn_explorer.py", label="Click here for Gene Regulatory Network page", icon="🌐")
 
