@@ -8,6 +8,10 @@ from utils.constants import DEGFilter, GENE_SELECTION_OPTIONS, DEG_FILTER_OPTION
 from utils.helper_functions import parse_input, retreive_query_data
 from datetime import datetime
 import io, zipfile
+from PIL import Image
+
+# Increase PIL's image size limit to handle large plots (but keep a reasonable limit for safety)
+Image.MAX_IMAGE_PIXELS = 200000000  # ~200 megapixels
 
 st.title('Xerophyta Data Explorer')
 st.divider()
@@ -15,6 +19,7 @@ st.divider()
 database = db.DB()
 EXPRESSION_PLOT_OPTIONS = ["log2_expression", "normalised_expression"]
 PLOT_DISPLAY_OPTIONS = ["Genes on single plot", "Genes on separate plot"]
+MAX_GENES_FOR_PLOTTING = 50  # Limit to prevent server overload and long processing times
 
 
 def initialise_session_state():
@@ -210,14 +215,26 @@ def main():
             )
 
             show_missing_genes(missing_input)
-               
+
             if rna_seq_data.empty:
                 empty_genes_warning()
             else:
-                with st.spinner("Generating plots...", show_time=True):
-                    generate_plots(rna_seq_data)
-                    num_genes_retreived = rna_seq_data['gene_name'].nunique()
-                    st.write(f"Found {num_genes_retreived} gene(s).")
+                num_genes_retreived = rna_seq_data['gene_name'].nunique()
+
+                # Check if number of genes exceeds plotting limit
+                if num_genes_retreived > MAX_GENES_FOR_PLOTTING:
+                    st.warning(
+                        f"⚠️ Found {num_genes_retreived} genes, which exceeds the plotting limit of {MAX_GENES_FOR_PLOTTING} genes.\n\n"
+                        f"**Suggestions:**\n"
+                        f"- Use the **'Filter genes based on differential expression'** option to reduce the number of genes\n"
+                        f"- Refine your gene selection to be more specific\n"
+                        f"- Download the raw data below instead of generating plots"
+                    )
+                    st.write(f"Found {num_genes_retreived} gene(s). Plots not generated due to limit.")
+                else:
+                    with st.spinner("Generating plots...", show_time=True):
+                        generate_plots(rna_seq_data)
+                        st.write(f"Found {num_genes_retreived} gene(s).")
 
             
             if not rna_seq_data.empty:
