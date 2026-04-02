@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
+from PIL import Image
 import database.db as db
 from utils.constants import GENE_SELECTION_OPTIONS
 from utils.helper_functions import parse_input, retreive_query_data
@@ -10,8 +11,13 @@ from sqlalchemy.orm import aliased
 from sqlalchemy import func
 
 # Get absolute paths for images to ensure they load on first app startup
-SCRIPT_DIR = Path(__file__).parent
+SCRIPT_DIR = Path(__file__).parent.resolve()
 IMAGE_DIR = SCRIPT_DIR / "images"
+
+@st.cache_resource
+def load_image(image_path):
+    """Cache images to ensure they're registered in Streamlit's media handler on first load"""
+    return Image.open(image_path)
 
 @st.cache_data
 def get_clusters(tf, verbose=False):
@@ -109,7 +115,7 @@ st.divider()
 database = db.DB()
 
 
-st.image(str(IMAGE_DIR / "Fig5_grn.tiff"), width=600)
+st.image(load_image(IMAGE_DIR / "Fig5_grn.tiff"), width=600)
 st.caption("Figure 5. Reconstruction of gene regulatory network using a consensus approach. (Reference paper?)")
 
 

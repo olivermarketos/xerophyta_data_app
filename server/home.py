@@ -1,9 +1,15 @@
 import streamlit as st
 from pathlib import Path
+from PIL import Image
 
 # Get absolute paths for images to ensure they load on first app startup
-SCRIPT_DIR = Path(__file__).parent
+SCRIPT_DIR = Path(__file__).parent.resolve()
 IMAGE_DIR = SCRIPT_DIR / "images"
+
+@st.cache_resource
+def load_image(image_path):
+    """Cache images to ensure they're registered in Streamlit's media handler on first load"""
+    return Image.open(image_path)
 
 st.markdown(
         """
@@ -34,7 +40,7 @@ with tab1:
     
     col1, col2 = st.columns([0.25,0.7], gap="small")
 
-    col1.image(str(IMAGE_DIR / "x_elegans_plant.png"), width=250)
+    col1.image(load_image(IMAGE_DIR / "x_elegans_plant.png"), width=250)
     col2.markdown("""
 The genus _Xerophyta_, found in the subtropical regions of sub-Saharan Africa, Madagascar, and the Arabian Peninsula, contains 45 species, all of which exhibit vegetative desiccation tolerance. _Xerophyta elegans_ (formerly _Talbotia elegans_) is the only homoiochlorophyllous _Xerophyta_ species, all other _Xerophyta_ species are poikilochlorophyllous, degrading chlorophyll and dismantling plastids during desiccation. The dry leaves of _X. elegans_, which retain their chlorophyll are protected from photodamage by purple anthocyanins, and by their growth in deep shade along forested riverbanks or in the shadow of cave or cliff overhangs, in the foothills of the Drakensberg in South Africa.
 
@@ -67,7 +73,7 @@ with tab4:
 
 
 with tab5:
-    st.image(str(IMAGE_DIR / "EvoDevo_lab.jpg"))
+    st.image(load_image(IMAGE_DIR / "EvoDevo_lab.jpg"))
 
 
 st.divider()
