@@ -24,6 +24,8 @@ def initialise_session_state():
         st.session_state.input_genes = ""
     if "show_raw_data" not in st.session_state:
         st.session_state.show_raw_data = False
+    # Always reset to X. elegans for expression page (may have changed on gene info page)
+    st.session_state.species = "X. elegans"
 
 def setup_sidebar():
 
