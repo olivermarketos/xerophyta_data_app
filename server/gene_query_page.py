@@ -52,10 +52,8 @@ def setup_sidebar():
         if selected_gene_selection == option:
             st.sidebar.text_area(
                 config["input_label"],
-                value=config["value"],
-                key="input_genes",
-                # value = st.session_state.input_genes,
-                on_change=lambda: st.session_state.update({"input_genes": st.session_state.input_genes})  # Update session state on change
+                placeholder=config["value"],
+                key="input_genes"
             )
             st.session_state.gene_input_type = config["key"]
 
