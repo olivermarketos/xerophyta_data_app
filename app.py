@@ -1,7 +1,20 @@
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Data explorer",page_icon=":material/edit:",layout="wide")
 
+GA_TRACKING_CODE = """
+  <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-35Z5NZDTZ2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-35Z5NZDTZ2');
+</script>
+  """
+components.html(GA_TRACKING_CODE, height=0)
 # entry point app
 home_page = st.Page("server/home.py", title="Home", icon="🏠") #icon=":material/add_circle:")
 expression_page = st.Page("server/expression_page.py", title="Expression data",icon="📊")
