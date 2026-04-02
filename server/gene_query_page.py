@@ -32,8 +32,11 @@ ALL_COLUMNS = [
 def initialise_session_state():
     if "run_query" not in st.session_state:
         st.session_state.run_query = False
+    if "gene_selection" not in st.session_state:
+        st.session_state.gene_selection = "Xerophyta GeneID"
     if "input_genes" not in st.session_state:
-        st.session_state.input_genes = ""
+        # Initialize with the default value from the first selection option
+        st.session_state.input_genes = GENE_SELECTION_OPTIONS["Xerophyta GeneID"]["value"]
     
 
 def setup_sidebar():
@@ -46,13 +49,29 @@ def setup_sidebar():
     st.session_state.species = selected_species
 
     # Query inputs
-    selected_gene_selection = st.sidebar.radio("Gene selection method:", list(GENE_SELECTION_OPTIONS.keys()), key="gene_selection")
+    def on_gene_selection_change():
+        # Update input_genes with the new selection's default value
+        selected = st.session_state.gene_selection
+        for option, config in GENE_SELECTION_OPTIONS.items():
+            if selected == option:
+                st.session_state.input_genes = config["value"]
+                break
+
+    selected_gene_selection = st.sidebar.radio(
+        "Gene selection method:",
+        list(GENE_SELECTION_OPTIONS.keys()),
+        key="gene_selection",
+        on_change=on_gene_selection_change
+    )
     # Gene input field based on selection
     for option, config in GENE_SELECTION_OPTIONS.items():
         if selected_gene_selection == option:
+            # Ensure input_genes matches current selection before rendering widget
+            if not st.session_state.input_genes:
+                st.session_state.input_genes = config["value"]
+
             st.sidebar.text_area(
                 config["input_label"],
-                placeholder=config["value"],
                 key="input_genes"
             )
             st.session_state.gene_input_type = config["key"]
