@@ -214,7 +214,7 @@ The app's data is stored in a single SQLite database file (~500 MB). Because of 
 
 The database is archived at the following location:
 
-> **[Zenodo DOI — to be added by authors]**
+> **[Zenodo DOI — TODO]**
 
 Download the file named `all_xerophyta_species_db.sqlite` and place it in the following folder inside your project directory:
 
