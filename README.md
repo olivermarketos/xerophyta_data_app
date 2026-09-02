@@ -30,12 +30,6 @@ A web application for exploring transcriptomic data from *Xerophyta* resurrectio
 
 *Xerophyta* is a genus of resurrection plants native to sub-Saharan Africa, Madagascar, and the Arabian Peninsula. These plants are remarkable for their ability to survive complete desiccation and recover upon rehydration. This application provides a browser-based interface to the transcriptomic datasets generated from three *Xerophyta* species:
 
-| Species | Notes |
-|---|---|
-| *Xerophyta elegans* | Homoiochlorophyllous; retains chlorophyll during desiccation. Seedling time-course covers 7 dehydration and 7 rehydration time points. |
-| *Xerophyta schlechteri* | Poikilochlorophyllous; degrades chlorophyll during desiccation. |
-| *Xerophyta humilis* | Poikilochlorophyllous. |
-
 The application is intended as a companion resource to the following manuscript:
 
 > Kabwe E.N.K., Edwards M.P., Lyall R., Ngcala M., Schlebusch S.A., Marketos O.P., VanBuren R., Nikoloski Z., Ingle R.A. and Illing N. *Transcriptional regulation of the response to water availability in the resurrection plant* Xerophyta elegans. *(Submitted manuscript.)*
@@ -86,13 +80,9 @@ streamlit run app.py
 
 ## Step-by-step installation
 
-This section is written for readers who may not have prior experience with Python or the command line. Each step is explained in plain terms. You do not need to understand how the code works — you just need to follow these steps to get the app running on your own computer.
+This section is written for readers who may not have prior experience with Python or the command line. Follow these steps to get the app running on your own computer.
 
-### What you will need
-
-- A computer running **macOS**, **Windows**, or **Linux**
-- An internet connection (for the initial setup)
-- Approximately **1.5 GB** of free disk space (for Python, dependencies, and the database)
+> Approximately **1.5 GB** of free disk space is needed (for Python, dependencies, and the database)
 
 ---
 
