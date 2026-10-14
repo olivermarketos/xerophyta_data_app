@@ -1,7 +1,7 @@
 """
 Defines all the data models used in the database
 """
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, Table, Boolean, Float, CHAR, UniqueConstraint, Enum
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, Table, Boolean, Float, CHAR, UniqueConstraint, Enum, Index
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -58,7 +58,7 @@ class Gene(Base):
     __tablename__ = "genes"
     id  = Column(Integer, primary_key=True)
     gene_name = Column(String, nullable=False, unique=True)
-    species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
+    species_id = Column(Integer, ForeignKey('species.id'), nullable=False, index=True)
     coding_sequence = Column(Text, nullable=True)
 
     species = relationship("Species", back_populates="genes")
@@ -95,9 +95,9 @@ class RegulatoryInteraction(Base):
     # Foreign key to the Gene table for the regulator
     regulator_gene_id = Column(Integer, ForeignKey('genes.id'), nullable=False)
     # Foreign key to the Gene table for the target
-    target_gene_id = Column(Integer, ForeignKey('genes.id'), nullable=False)
+    target_gene_id = Column(Integer, ForeignKey('genes.id'), nullable=False, index=True)
 
-    regulatory_cluster = Column(String, nullable=True) # e.g., "HSF:1"
+    regulatory_cluster = Column(String, nullable=True, index=True) # e.g., "HSF:1"
     target_cluster = Column(String, nullable=True)     # e.g., "HD-ZIP:1"
 
     # Direction of regulation: "Activation" or "Repression" (or potentially others)
@@ -198,13 +198,19 @@ class Gene_expressions(Base):
     log2_expression = Column("log2_expression", Float,nullable=False)
     meta_data = Column("meta_data", Text, nullable=True)
 
-    experiment_id = Column(Integer, ForeignKey("experiments.id"), nullable=False)
+    experiment_id = Column(Integer, ForeignKey("experiments.id"), nullable=False, index=True)
     species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
-    gene_id = Column(Integer, ForeignKey("genes.id"), nullable=False)
+    gene_id = Column(Integer, ForeignKey("genes.id"), nullable=False, index=True)
 
     experiment = relationship("Experiments", back_populates="gene_expressions")
     species = relationship("Species", back_populates="gene_expressions")
     genes = relationship("Gene", back_populates="gene_expressions")
+
+    __table_args__ = (
+        # one value per gene/sample within an experiment
+        Index('uq_gene_expressions_experiment_gene_sample',
+              'experiment_id', 'gene_id', 'treatment', 'time', 'replicate', unique=True),
+    )
 
 class Experiments(Base):
     __tablename__ = "experiments"

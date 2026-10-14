@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime 
 import database.db as db  # Your custom db module
 from utils.constants import GENE_SELECTION_OPTIONS
-from utils.helper_functions import parse_input, retreive_query_data
+from utils.helper_functions import parse_input, retreive_query_data, default_gene_input
 
 st.title("Xerophyta Database Explorer")
 st.divider()
@@ -45,17 +45,19 @@ def setup_sidebar():
     # Species selection
     species_list = database.get_species()
     species_options = ["Any"] + [sp.name for sp in species_list]
-    selected_species = st.sidebar.selectbox("Select Species (optional):", species_options)
-    st.session_state.species = selected_species
+
+    def on_species_change():
+        # Show the new species' example gene IDs
+        if st.session_state.gene_selection == "Xerophyta GeneID":
+            st.session_state.input_genes = default_gene_input("Xerophyta GeneID", st.session_state.gene_info_species)
+
+    selected_species = st.sidebar.selectbox("Select Species (optional):", species_options,
+                                            key="gene_info_species", on_change=on_species_change)
 
     # Query inputs
     def on_gene_selection_change():
         # Update input_genes with the new selection's default value
-        selected = st.session_state.gene_selection
-        for option, config in GENE_SELECTION_OPTIONS.items():
-            if selected == option:
-                st.session_state.input_genes = config["value"]
-                break
+        st.session_state.input_genes = default_gene_input(st.session_state.gene_selection, selected_species)
 
     selected_gene_selection = st.sidebar.radio(
         "Gene selection method:",
@@ -68,7 +70,7 @@ def setup_sidebar():
         if selected_gene_selection == option:
             # Ensure input_genes matches current selection before rendering widget
             if not st.session_state.input_genes:
-                st.session_state.input_genes = config["value"]
+                st.session_state.input_genes = default_gene_input(option, selected_species)
 
             st.sidebar.text_area(
                 config["input_label"],
@@ -100,8 +102,13 @@ def main():
         input_genes = st.session_state.input_genes
 
         if input_genes:
-            selected_species = st.session_state.species
+            selected_species = st.session_state.gene_info_species
             input_genes = parse_input(input_genes)
+
+            arabidopsis_search = st.session_state.gene_input_type in ("Arab_loci", "Arab_common_name")
+            if arabidopsis_search and selected_species != "Any" and not database.has_arabidopsis_homologues(selected_species):
+                st.info(f"Arabidopsis homologues are not yet available for _{selected_species}_, so this search will not find any genes. "
+                        "Try searching by gene ID, GO term or enzyme instead.")
 
             annotation_data, matched_input, missing_input = retreive_query_data(input_genes, selected_species, st.session_state.gene_input_type)
 
@@ -187,11 +194,12 @@ def show_instructions():
 
         2. **Query Xerophyta gene ID:**
             - Enter one or more Xerophyta gene IDs, separated by commas or newlines.
-            - e.g. Xele.ptg000049l.138, Xele.ptg000049l.140, Xele.ptg000049l.52
+            - e.g. Xele.ptg000049l.138, Xele.ptg000049l.140 (_X. elegans_) or Xsch.v2.MJHO01000001.1.9 (_X. schlechteri_)
             
         3. **Query Arabidopsis homologue locus id:**
             - Enter one or more Arabidopsis locus IDs, separated by commas or newlines.
             - e.g. At5g65540, At5g58510
+            - _Arabidopsis_ homologues are currently only available for _X. elegans_
             > __note__: search terms are case-insensitive
 
         4. **Arabidopsis homologue common name:**

@@ -1,5 +1,6 @@
 import re 
 import database.db as db
+from utils.constants import GENE_SELECTION_OPTIONS, EXAMPLE_GENE_IDS
 
 
 
@@ -19,6 +20,15 @@ def parse_input(input):
     tokens = list(set([t.strip() for t in cleaned.split(",") if t.strip()]))
     # Return unique tokens
     return tokens
+
+def default_gene_input(gene_selection, species):
+    """
+    Default text for the gene input box: the example gene IDs of the selected species
+    for a Xerophyta gene ID search, otherwise the selection option's example.
+    """
+    if gene_selection == "Xerophyta GeneID" and species in EXAMPLE_GENE_IDS:
+        return EXAMPLE_GENE_IDS[species]
+    return GENE_SELECTION_OPTIONS[gene_selection]["value"]
 
 def retreive_query_data(input_genes,selected_species, gene_input_type):
     """Process the logic for querying the database based on the user's input. 
