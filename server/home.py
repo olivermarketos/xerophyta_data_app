@@ -33,7 +33,7 @@ st.markdown(
 
 st.markdown("### Information")
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["_**X. elegans**_", "**Gene expression page**","**Gene Info page**","**Gene Regulatory Network page**", "**About the lab**"])
+tab1, tab_xs, tab2, tab3, tab4, tab5 = st.tabs(["_**X. elegans**_", "_**X. schlechteri**_", "**Gene expression page**","**Gene Info page**","**Gene Regulatory Network page**", "**About the lab**"])
 
 with tab1:
     st.subheader("_X. elegans_")
@@ -48,6 +48,20 @@ This _X. elegans_ seedlings time-course transcriptome dataset comprises samples 
 
 **Reference:**
 Kabwe E.N.K, Edwards M.P., Lyall R., Ngcala M., Schlebusch S.A., Marketos, O.P., VanBuren R., , Zoran Nikoloski Z., Ingle R.A. and Illing N. Transcriptional regulation of the response to water availability in the resurrection plant Xerophyta elegans. Submitted manuscript.
+""")
+
+with tab_xs:
+    st.subheader("_X. schlechteri_")
+
+    col1, col2 = st.columns([0.25,0.7], gap="small")
+
+    col1.image(load_image(IMAGE_DIR / "x_schlechteri_plant.png"), width=250)
+    # TODO: species description, dataset description and reference from the biologist
+    col2.markdown("""
+This _X. schlechteri_ seedlings time-course transcriptome dataset comprises samples taken at seven time points during dehydration and seven time points during rehydration.
+
+**Reference:**
+TODO
 """)
 
 with tab2:

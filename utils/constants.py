@@ -74,3 +74,9 @@ GENE_SELECTION_OPTIONS = {
     }
 
 }
+
+# Example Xerophyta gene IDs shown in the gene ID input box, per species
+EXAMPLE_GENE_IDS = {
+    "X. elegans": "Xele.ptg000001l.1, Xele.ptg000001l.116",
+    "X. schlechteri": "Xsch.v2.MJHO01000001.1.9, Xsch.v2.MJHO01000001.1.15",
+}

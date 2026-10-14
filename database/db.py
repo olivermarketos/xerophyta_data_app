@@ -214,18 +214,23 @@ class DB():
         )
 
         # Apply DEG filtering based on the selected option
+        if filter_deg != DEGFilter.SHOW_ALL:
+            # DEG results are per experiment, so match on the experiment as well as the gene
+            query = query.join(
+                models.DifferentialExpression,
+                (models.DifferentialExpression.gene_id == models.Gene.id)
+                & (models.DifferentialExpression.experiment_id == models.Experiments.id),
+            )
+
         if filter_deg == DEGFilter.SHOW_DEG:
-            query = query.join(models.DifferentialExpression, models.DifferentialExpression.gene_id == models.Gene.id)
             query = query.filter(
                 (models.DifferentialExpression.re_set.isnot(None)) | (models.DifferentialExpression.de_set.isnot(None))
             )
         elif filter_deg == DEGFilter.SHOW_UP:
-            query = query.join(models.DifferentialExpression, models.DifferentialExpression.gene_id == models.Gene.id)
             query = query.filter(
                 (models.DifferentialExpression.re_direction == "Up-regulated") | (models.DifferentialExpression.de_direction == "Up-regulated")
             )
         elif filter_deg == DEGFilter.SHOW_DOWN:
-            query = query.join(models.DifferentialExpression, models.DifferentialExpression.gene_id == models.Gene.id)
             query = query.filter(
                 (models.DifferentialExpression.re_direction == "Down-regulated") | (models.DifferentialExpression.de_direction == "Down-regulated")
             )
@@ -691,15 +696,162 @@ class DB():
         Returns:
             List[Experiments]: A list of Experiment objects associated with the species.
         """
-        # Query experiments associated with the given species
         results = (
             self.session.query(models.Experiments)
-            .join(models.Gene_expressions, models.Experiments.id == models.Gene_expressions.experiment_id)
-            .join(models.Species, models.Gene_expressions.species_id == models.Species.id)
+            .join(models.Species, models.Experiments.species_id == models.Species.id)
             .filter(models.Species.name == species_name)
-            .distinct()  # To avoid duplicates
+            .order_by(models.Experiments.id)
             .all()
         )
+        return results
+
+    def get_species_with_experiments(self):
+        """
+        Retrieve the species that have at least one experiment (i.e. expression data).
+
+        Returns:
+            List[Species]: Species objects, ordered by id.
+        """
+        results = (
+            self.session.query(models.Species)
+            .join(models.Experiments, models.Experiments.species_id == models.Species.id)
+            .distinct()
+            .order_by(models.Species.id)
+            .all()
+        )
+        return results
+
+    def has_arabidopsis_homologues(self, species_name):
+        """
+        Check whether any gene of a species is mapped to an Arabidopsis homologue.
+
+        Parameters:
+            species_name (str): The name of the species.
+
+        Returns:
+            bool
+        """
+        mapped = (
+            self.session.query(models.gene_homologue_association.c.gene_id)
+            .join(models.Gene, models.gene_homologue_association.c.gene_id == models.Gene.id)
+            .join(models.Species, models.Gene.species_id == models.Species.id)
+            .filter(models.Species.name == species_name)
+            .exists()
+        )
+        return self.session.query(mapped).scalar()
+
+    def get_species_with_grn(self):
+        """
+        Retrieve the species that have gene regulatory network data.
+
+        Returns:
+            List[Species]: Species objects, ordered by id.
+        """
+        has_interactions = (
+            self.session.query(models.RegulatoryInteraction.id)
+            .join(models.Gene, models.RegulatoryInteraction.regulator_gene_id == models.Gene.id)
+            .filter(models.Gene.species_id == models.Species.id)
+            .exists()
+        )
+        results = self.session.query(models.Species).filter(has_interactions).order_by(models.Species.id).all()
+        return results
+
+    def get_tf_groups(self, species_name):
+        """
+        Retrieve the regulatory (TF) clusters in the GRN of a species.
+
+        Parameters:
+            species_name (str): The name of the species.
+
+        Returns:
+            List[str]: Sorted regulatory cluster names.
+        """
+        results = (
+            self.session.query(models.RegulatoryInteraction.regulatory_cluster)
+            .join(models.Gene, models.RegulatoryInteraction.regulator_gene_id == models.Gene.id)
+            .join(models.Species, models.Gene.species_id == models.Species.id)
+            .filter(models.Species.name == species_name)
+            .filter(models.RegulatoryInteraction.regulatory_cluster.isnot(None))
+            .distinct()
+            .all()
+        )
+        return sorted(r[0] for r in results)
+
+    def get_tf_group_targets(self, tf, species_name, verbose=False):
+        """
+        Retrieve the target clusters regulated by a TF cluster in the GRN of a species.
+        Cluster names (e.g. "WRKY:1") are reused across species, so the species filter is required.
+
+        Parameters:
+            tf (str): Regulatory cluster name.
+            species_name (str): The name of the species.
+            verbose (bool): If True, also list the regulator and target genes in each cluster.
+
+        Returns:
+            pd.DataFrame: One row per (regulatory cluster, target cluster, direction).
+        """
+        RegulatorGene = aliased(models.Gene)
+        TargetGene = aliased(models.Gene)
+        RI = models.RegulatoryInteraction
+
+        if verbose:
+            columns = [
+                RI.regulatory_cluster,
+                func.group_concat(RegulatorGene.gene_name.distinct()).label("regulator_genes"),
+                RI.target_cluster,
+                func.group_concat(TargetGene.gene_name.distinct()).label("target_genes"),
+                RI.direction,
+            ]
+        else:
+            columns = [RI.regulatory_cluster, RI.target_cluster, RI.direction]
+
+        query = (
+            self.session.query(*columns)
+            .join(RegulatorGene, RI.regulator_gene_id == RegulatorGene.id)
+            .join(models.Species, RegulatorGene.species_id == models.Species.id)
+            .filter(models.Species.name == species_name)
+            .filter(RI.regulatory_cluster == tf)
+        )
+        if verbose:
+            query = query.join(TargetGene, RI.target_gene_id == TargetGene.id)
+        query = query.group_by(RI.regulatory_cluster, RI.target_cluster, RI.direction)
+
+        names = (["regulatory_cluster", "regulator_genes", "target_cluster", "target_genes", "direction"] if verbose
+                 else ["regulatory_cluster", "target_cluster", "direction"])
+        return pd.DataFrame(query.all(), columns=names)
+
+    def get_gene_grn_clusters(self, gene_names, species_name):
+        """
+        Retrieve the GRN clusters each gene belongs to, as a regulator and as a target.
+
+        Parameters:
+            gene_names (list): Gene names.
+            species_name (str): The name of the species.
+
+        Returns:
+            dict: {gene_name: {"regulatory_clusters": [...], "target_clusters": [...]}}
+        """
+        results = {gene: {"target_clusters": [], "regulatory_clusters": []} for gene in gene_names}
+        if not gene_names:
+            return results
+
+        RI = models.RegulatoryInteraction
+        for gene_column, cluster_column, key in [
+            (RI.target_gene_id, RI.target_cluster, "target_clusters"),
+            (RI.regulator_gene_id, RI.regulatory_cluster, "regulatory_clusters"),
+        ]:
+            rows = (
+                self.session.query(models.Gene.gene_name, cluster_column)
+                .join(models.Gene, gene_column == models.Gene.id)
+                .join(models.Species, models.Gene.species_id == models.Species.id)
+                .filter(models.Species.name == species_name)
+                .filter(models.Gene.gene_name.in_(gene_names))
+                .distinct()
+                .all()
+            )
+            for gene_name, cluster in rows:
+                results[gene_name][key].append(cluster)
+
         return results
 
     def link_experiment_to_species(self, experiment_name, species_name):
@@ -818,7 +970,6 @@ class DB():
         
         Parameters:
             gene_names (list): List of gene names to delete
-            cleanup_orphans (bool): Whether to clean up orphaned GO/Enzyme/InterPro records
             dry_run (bool): If True, return what would be deleted without actually deleting
             
         Returns:

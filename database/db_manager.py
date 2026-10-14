@@ -135,7 +135,7 @@ def add_experiment(experiment_name, description= None):
 
 def add_rna_seq_data(df, species, experiment_name):
     database = db.DB()
-    lookup_field = ["gene_id","treatment","time","replicate"]
+    lookup_field = ["experiment_id", "gene_id", "treatment", "time", "replicate"]
 
     species_id = database.session.query(models.Species.id).filter( models.Species.name == species ).scalar()
     experiment_id = database.session.query(models.Experiments.id).filter( models.Experiments.experiment_name == experiment_name ).scalar()

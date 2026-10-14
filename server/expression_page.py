@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import  database.db as db
 import utils.plots as plots
 from utils.constants import DEGFilter, GENE_SELECTION_OPTIONS, DEG_FILTER_OPTIONS
-from utils.helper_functions import parse_input, retreive_query_data
+from utils.helper_functions import parse_input, retreive_query_data, default_gene_input
 from datetime import datetime
 import io, zipfile
 from PIL import Image
@@ -29,21 +29,22 @@ def initialise_session_state():
         st.session_state.input_genes = ""
     if "show_raw_data" not in st.session_state:
         st.session_state.show_raw_data = False
-    # Always reset to X. elegans for expression page (may have changed on gene info page)
-    st.session_state.species = "X. elegans"
+
+def on_species_change():
+    # Show the new species' example gene IDs, otherwise the old species' IDs would return nothing
+    if st.session_state.get("gene_selection") == "Xerophyta GeneID":
+        st.session_state.input_genes = default_gene_input("Xerophyta GeneID", st.session_state.expression_species)
 
 def setup_sidebar():
 
-    # Define selection options
-    # This selects all species in the database, uncomment to use when adding data for other species
-    # species = [species.name for species in database.get_species()]
-    species = ['X. elegans']  # For now, hard code X. elegans species as a single-option list
-    
-    selected_species = st.sidebar.radio("Select a species:", species, key="species")
-    
-    
-    experiments = [experiment.experiment_name for experiment in database.get_experiments_by_species(selected_species)]
-    selected_experiment = st.sidebar.radio("Select a dataset:", experiments, key="experiment")
+    # Only species with expression data
+    species = [species.name for species in database.get_species_with_experiments()]
+    selected_species = st.sidebar.radio("Select a species:", species, key="expression_species", on_change=on_species_change)
+
+    experiments = {experiment.experiment_name: experiment.description or experiment.experiment_name
+                   for experiment in database.get_experiments_by_species(selected_species)}
+    selected_experiment = st.sidebar.radio("Select a dataset:", list(experiments), key="experiment",
+                                           format_func=lambda name: experiments[name])
     
     selected_gene_selection = st.sidebar.radio("Gene selection method:", list(GENE_SELECTION_OPTIONS.keys()), key="gene_selection")
 
@@ -52,7 +53,7 @@ def setup_sidebar():
         if selected_gene_selection == option:
             st.sidebar.text_area(
                 config["input_label"],
-                value=config["value"],
+                value=default_gene_input(option, selected_species),
                 key="input_genes",
                 on_change=lambda: st.session_state.update({"input_genes": st.session_state.input_genes})  # Update session state on change
             )
@@ -198,7 +199,7 @@ def main():
         input_genes = st.session_state.input_genes
         # input_genes = st.session_state.input_genes
         if input_genes:
-            selected_species = st.session_state.species
+            selected_species = st.session_state.expression_species
             input_genes = parse_input(input_genes)
             rna_seq_data = []
 
@@ -267,9 +268,10 @@ def show_instructions():
         #### **Step 2: Select your genes of interest**
 
         - **Xerophyta GeneID:** Input Xerophyta gene ID(s) 
-            - e.g. Xele.ptg000049l.138, Xele.ptg000049l.140, Xele.ptg000049l.52
+            - e.g. Xele.ptg000049l.138, Xele.ptg000049l.140 (_X. elegans_) or Xsch.v2.MJHO01000001.1.9 (_X. schlechteri_)
         - **Arabidopsis homologue locus:** Provide an Arabidopsis locus ID 
             - e.g. At5g65540, At5g58510
+            - _Arabidopsis_ homologues are currently only available for _X. elegans_
         - **Arabidopsis homologue common name:** Provide an Arabidopsis common name
             - e.g expansin A4, auxin response factor 2
         - **Query by GO id:**
