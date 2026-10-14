@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-from PIL import Image
 import database.db as db
 from utils.helper_functions import parse_input
 
@@ -12,20 +11,15 @@ IMAGE_DIR = SCRIPT_DIR / "images"
 # GRN figure and caption shown for each species
 GRN_FIGURES = {
     "X. elegans": (
-        "Fig5_grn.tiff",
+        "x_elegans_grn.png",
         "Figure 5. Reconstruction of gene regulatory network using a consensus approach. (Reference paper?)",
     ),
     # TODO: caption from the biologist
     "X. schlechteri": (
-        "x_schlechteri_grn.tiff",
+        "x_schlechteri_grn.png",
         "Reconstruction of the X. schlechteri gene regulatory network.",
     ),
 }
-
-@st.cache_resource
-def load_image(image_path):
-    """Cache images to ensure they're registered in Streamlit's media handler on first load"""
-    return Image.open(image_path)
 
 @st.cache_data
 def get_species_with_grn():
@@ -53,7 +47,8 @@ selected_species = st.radio("Select a species:", get_species_with_grn(), key="gr
 
 if selected_species in GRN_FIGURES:
     figure, caption = GRN_FIGURES[selected_species]
-    st.image(load_image(IMAGE_DIR / figure), width=600)
+    # PNG served straight from disk (the original TIFFs had to be re-encoded on every run, and sometimes didn't load)
+    st.image(str(IMAGE_DIR / figure), width=600)
     st.caption(caption)
 
 
